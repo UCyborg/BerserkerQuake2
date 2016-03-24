@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="Berserker" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/berserker" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/berserker" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-DNDEBUG" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-m32" />
+		</Compiler>
+		<Linker>
+			<Add option="-m32" />
+			<Add option="-lm" />
+			<Add option="-lGL" />
+			<Add option="-lvorbis" />
+			<Add option="-lvorbisfile" />
+			<Add option="-lz" />
+			<Add option="-lSDL2" />
+			<Add option="-lpng12" />
+			<Add option="-ljpeg" />
+		</Linker>
+		<Unit filename="anorms.h" />
+		<Unit filename="compat.h" />
+		<Unit filename="data.h" />
+		<Unit filename="defs.h" />
+		<Unit filename="m_flash.h" />
+		<Unit filename="m_frames.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="q2pal.h" />
+		<Unit filename="unpak.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="unpak.h" />
+		<Unit filename="unzip.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="unzip.h" />
+		<Unit filename="warpsin.h" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
