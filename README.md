@@ -11,7 +11,7 @@ The makefile is provided in the root of this source tree, which should,
 provided you have all needed libraries setup, produce "berserker"
 executable file and game logic library "libgame.so". These libraries are:
 
-libjpeg (v6b or compatible)  
+libjpeg8  
 libpng (v1.2.* or compatible)  
 libogg  
 libvorbis  
