@@ -46944,75 +46944,69 @@ void SDL_EventProc(SDL_Event *ev)
 		}
 		case SDL_MOUSEBUTTONDOWN:
 		{
-			if (mouseactive)
+			switch (ev->button.button)
 			{
-				switch (ev->button.button)
+				case SDL_BUTTON_LEFT:
 				{
-					case SDL_BUTTON_LEFT:
-					{
-						Key_Event(K_MOUSE1, true);
-						break;
-					}
-					case SDL_BUTTON_RIGHT:
-					{
-						Key_Event(K_MOUSE2, true);
-						break;
-					}
-					case SDL_BUTTON_MIDDLE:
-					{
-						Key_Event(K_MOUSE3, true);
-						break;
-					}
-					case SDL_BUTTON_X1:
-					{
-						Key_Event(K_MOUSE4, true);
-						break;
-					}
-					case SDL_BUTTON_X2:
-					{
-						Key_Event(K_MOUSE5, true);
-						break;
-					}
-					default:
-						break;
+					Key_Event(K_MOUSE1, true);
+					break;
 				}
+				case SDL_BUTTON_RIGHT:
+				{
+					Key_Event(K_MOUSE2, true);
+					break;
+				}
+				case SDL_BUTTON_MIDDLE:
+				{
+					Key_Event(K_MOUSE3, true);
+					break;
+				}
+				case SDL_BUTTON_X1:
+				{
+					Key_Event(K_MOUSE4, true);
+					break;
+				}
+				case SDL_BUTTON_X2:
+				{
+					Key_Event(K_MOUSE5, true);
+					break;
+				}
+				default:
+					break;
 			}
 			break;
 		}
 		case SDL_MOUSEBUTTONUP:
 		{
-			if (mouseactive)
+			switch (ev->button.button)
 			{
-				switch (ev->button.button)
+				case SDL_BUTTON_LEFT:
 				{
-					case SDL_BUTTON_LEFT:
-					{
-						Key_Event(K_MOUSE1, false);
-						break;
-					}
-					case SDL_BUTTON_RIGHT:
-					{
-						Key_Event(K_MOUSE2, false);
-						break;
-					}
-					case SDL_BUTTON_MIDDLE:
-					{
-						Key_Event(K_MOUSE3, false);
-						break;
-					}
-					case SDL_BUTTON_X1:
-					{
-						Key_Event(K_MOUSE4, false);
-						break;
-					}
-					case SDL_BUTTON_X2:
-					{
-						Key_Event(K_MOUSE5, false);
-						break;
-					}
-					default:
-						break;
+					Key_Event(K_MOUSE1, false);
+					break;
 				}
+				case SDL_BUTTON_RIGHT:
+				{
+					Key_Event(K_MOUSE2, false);
+					break;
+				}
+				case SDL_BUTTON_MIDDLE:
+				{
+					Key_Event(K_MOUSE3, false);
+					break;
+				}
+				case SDL_BUTTON_X1:
+				{
+					Key_Event(K_MOUSE4, false);
+					break;
+				}
+				case SDL_BUTTON_X2:
+				{
+					Key_Event(K_MOUSE5, false);
+					break;
+				}
+				default:
+					break;
 			}
 			break;
 		}
