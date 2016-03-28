@@ -46562,6 +46562,14 @@ void Options_MenuInit()
 	s_options_quality_list.itemnames		= quality_items;
 	s_options_quality_list.curvalue			= QualFromKHZ(Cvar_VariableValue( "s_khz" ));
 
+	s_options_mutefocus_list.generic.type = MTYPE_SPINCONTROL;
+	s_options_mutefocus_list.generic.x = 0;
+	s_options_mutefocus_list.generic.y = 40;
+	s_options_mutefocus_list.generic.name = "mute when inactive";
+	s_options_mutefocus_list.generic.callback = ToggleMuteFocusFunc;
+	s_options_mutefocus_list.itemnames = onoff_names;
+	s_options_mutefocus_list.curvalue = Cvar_VariableValue("s_mute_losefocus");
+
 	s_options_sensitivity_slider.generic.type	= MTYPE_SLIDER;
 	s_options_sensitivity_slider.generic.x		= 0;
 	s_options_sensitivity_slider.generic.y		= 50;
@@ -46645,6 +46653,7 @@ void Options_MenuInit()
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_onoff_list );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_sfxvolume_slider );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_quality_list );
+	Menu_AddItem( &s_options_menu, ( void * ) &s_options_mutefocus_list );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_sensitivity_slider );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_alwaysrun_box );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_invertmouse_box );
@@ -47061,17 +47070,23 @@ void SDL_EventProc(SDL_Event *ev)
 				case SDL_WINDOWEVENT_MINIMIZED:
 				{
 					AppActivate(false, true);
+					if (s_mute_losefocus && s_mute_losefocus->value)
+						SDL_PauseAudio(1);
 					break;
 				}
 				case SDL_WINDOWEVENT_FOCUS_LOST:
 				{
 					AppActivate(false, false);
+					if (s_mute_losefocus && s_mute_losefocus->value)
+						SDL_PauseAudio(1);
 					break;
 				}
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
 				{
 					// KJB: Watch this for problems in fullscreen modes with Alt-tabbing.
 					AppActivate(true, false);
+					if (s_mute_losefocus && s_mute_losefocus->value)
+						SDL_PauseAudio(0);
 					break;
 				}
 				case SDL_WINDOWEVENT_CLOSE:
@@ -83957,6 +83972,7 @@ void S_Init ()
 		s_khz = Cvar_Get ("s_khz", "22", CVAR_ARCHIVE);
 		s_loadas8bit = Cvar_Get ("s_loadas8bit", "0", CVAR_ARCHIVE);
 		s_mixahead = Cvar_Get ("s_mixahead", "0.2", CVAR_ARCHIVE);
+		s_mute_losefocus = Cvar_Get ("s_mute_losefocus", "1", CVAR_ARCHIVE);
 		s_show = Cvar_Get ("s_show", "0", 0);
 		s_testsound = Cvar_Get ("s_testsound", "0", 0);
 
@@ -88066,6 +88082,12 @@ void ToggleSoundFunc( void *unused )
 	End_Frame();
 
 	CL_Snd_Restart_f();
+}
+
+
+void ToggleMuteFocusFunc( void *unused )
+{
+	Cvar_SetValue("s_mute_losefocus", s_options_mutefocus_list.curvalue);
 }
 
 
@@ -98052,13 +98074,10 @@ void S_Update_()
 	unsigned        endtime;
 	int				samps;
 
-	if (!sound_started)
+	if (!sound_started || (!ActiveApp && s_mute_losefocus->value))
 		return;
 
 	SNDDMA_BeginPainting ();
-
-	if (!dma.buffer)
-		return;
 
 // Updates DMA time
 	GetSoundtime();
