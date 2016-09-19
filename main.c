@@ -31217,6 +31217,7 @@ void Com_Quit ()
 		logfile = NULL;
 	}
 
+	NET_Shutdown ();
 	Sys_Quit ();
 }
 
@@ -31709,6 +31710,14 @@ void NET_Init ()
 		Com_Printf("...using Quake2 net protocol: %i\n\n", OLD_PROTOCOL_VERSION);
 	else
 		Com_Printf("...using Berserker's net protocol: %i\n\n", PROTOCOL_VERSION);
+}
+
+
+void NET_Shutdown ()
+{
+#ifdef _WIN32
+	WSACleanup ();
+#endif
 }
 
 
