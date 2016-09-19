@@ -253,7 +253,6 @@ bool	drawing_sky_world;
 cvar_t	*cv_reset;
 cvar_t	*s_music;
 cvar_t	*s_musicVolume;
-cvar_t	*sys_cpu;
 cvar_t	*sys_username;
 cvar_t	*scr_drawclock;
 cvar_t	*scr_draw2d;
@@ -2948,23 +2947,8 @@ int			start_clock;
 
 bool		light_used, shadow_used;
 
-#ifdef ENABLE_ASM
-void		(*Memcpy)(void *, const void *, size_t);
-void		(*Memset)(void *, const int, size_t);
-#else
-#define Memcpy memcpy
-#define Memset memset
-#define Com_Memcmp memcmp
-#endif
 float		(*Sqrt)(float);
 ///float		(*Sin)(float);
-
-bool		cpu_mmx;
-bool		cpu_mmxe;
-bool		cpu_3dnow;
-bool		cpu_3dnowe;
-bool		cpu_sse;
-bool		cpu_sse2;
 
 unsigned	hashes[MAX_SPEC_TEXTURES];
 unsigned	hashLaserBolt[3];
@@ -2983,8 +2967,6 @@ int			r_using_burning = 0;
 int			r_using_pain = 0;
 int			r_using_pain_frame;
 int			r_using_drown = 0;
-
-int			NumberOfProcessors = 1;
 
 
 bool						vc_initialised = false;
@@ -3111,12 +3093,6 @@ bool Ent_MirrorClip(float *mins, float *maxs);
 void R_LightForPoint (vec3_t point, vec3_t color);
 void Create_Demosstrings (int mask);
 void CreateShadowVBO();
-void MMX_Memcpy8B( void *dest, const void *src, size_t count );
-void MMX_Memcpy64B( void *dest, const void *src, size_t count );
-void MMX_Memcpy2kB( void *dest, const void *src, size_t count );
-void MMX_Memcpy( void *dest0, const void *src0, size_t count0 );
-void AMD_Memcpy( void *dest, const void *src, size_t n );
-void MMX_Memset( void* dest0, const int val, const size_t count0 );
 void TraceDecal();
 bool R_MarkAliasLeaves(alink_t *alias);
 bool CM_AreasConnected (int area1, int area2);

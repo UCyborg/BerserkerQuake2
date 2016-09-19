@@ -29,12 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "defs.h"
 #include "gamedata.h"
 
-#ifndef ENABLE_ASM
-#define Com_Memcpy memcpy
-#define Com_Memset memset
-#define Com_Memcmp memcmp
-#endif
-
 bool SV_movestep (edict_t *ent, vec3_t move, bool relink);
 bool visible (edict_t *self, edict_t *other);
 bool infront (edict_t *self, edict_t *other);
@@ -62,570 +56,6 @@ void MakronToss (edict_t *self);
 
 ///////////////// COMMON PROGS (FIXME: put it common.c) //////////////////////////////////////////////
 vec3_t vec3_origin = {0,0,0};
-
-
-#ifdef ENABLE_ASM
-void Com_Prefetch (const void *s, const unsigned bytes/*, e_prefetch type*/)
-{
-#ifdef _MSC_VER
-	// write buffer prefetching is performed only if
-	// the processor benefits from it. Read and read/write
-	// prefetching is always performed.
-
-///	switch (type)
-///	{
-///		case PRE_WRITE:
-///			break;
-///		case PRE_READ:
-///		case PRE_READ_WRITE:
-			__asm
-			{
-				mov		ebx,s
-				mov		ecx,bytes
-				cmp		ecx,4096				// clamp to 4kB
-				jle		skipClamp
-				mov		ecx,4096
-skipClamp:
-				add		ecx,0x1f
-				shr		ecx,5					// number of cache lines
-				jz		skip
-				jmp		loopie
-
-				align 16
-loopie:			test	byte ptr [ebx],al
-				add		ebx,32
-				dec		ecx
-				jnz		loopie
-skip:
-			}
-///			break;
-///	}
-#else
-    __asm__
-    (
-        "movl %0,%%ebx\n"
-        "movl %1,%%ecx\n"
-        "cmpl $4096,%%ecx\n"
-        "jle 1f\n"
-        "movl $4096,%%ecx\n"
-
-        "1:\n"
-        "addl $0x1f,%%ecx\n"
-        "shrl $5,%%ecx\n"
-
-        "jz 3f\n"
-        "jmp 2f\n"
-        ".align 16\n"
-
-        "2:\n"
-        "testb %%al,(%%ebx)\n"
-        "addl $32,%%ebx\n"
-        "decl %%ecx\n"
-        "jnz 2b\n"
-
-        "3:\n"
-        :
-        : "m" (s), "m" (bytes)
-        : "%ebx", "%ecx"
-    );
-#endif
-}
-#endif
-
-
-#ifdef ENABLE_ASM
-void _copyDWord (unsigned *dest, const unsigned constant, const unsigned count)
-{
-#ifdef _MSC_VER
-	__asm
-	{
-			mov		edx,dest
-			mov		eax,constant
-			mov		ecx,count
-			and		ecx,~7
-			jz		padding
-			sub		ecx,8
-			jmp		loopu
-			align	16
-loopu:
-			test	[edx+ecx*4 + 28],ebx		// fetch next block destination to L1 cache
-			mov		[edx+ecx*4 + 0],eax
-			mov		[edx+ecx*4 + 4],eax
-			mov		[edx+ecx*4 + 8],eax
-			mov		[edx+ecx*4 + 12],eax
-			mov		[edx+ecx*4 + 16],eax
-			mov		[edx+ecx*4 + 20],eax
-			mov		[edx+ecx*4 + 24],eax
-			mov		[edx+ecx*4 + 28],eax
-			sub		ecx,8
-			jge		loopu
-padding:	mov		ecx,count
-			mov		ebx,ecx
-			and		ecx,7
-			jz		outta
-			and		ebx,~7
-			lea		edx,[edx+ebx*4]				// advance dest pointer
-			test	[edx+0],eax					// fetch destination to L1 cache
-			cmp		ecx,4
-			jl		skip4
-			mov		[edx+0],eax
-			mov		[edx+4],eax
-			mov		[edx+8],eax
-			mov		[edx+12],eax
-			add		edx,16
-			sub		ecx,4
-skip4:		cmp		ecx,2
-			jl		skip2
-			mov		[edx+0],eax
-			mov		[edx+4],eax
-			add		edx,8
-			sub		ecx,2
-skip2:		cmp		ecx,1
-			jl		outta
-			mov		[edx+0],eax
-outta:
-	}
-#else
-    __asm__
-    (
-        "movl %0,%%edx\n"
-        "movl %1,%%eax\n"
-        "movl %2,%%ecx\n"
-        "andl $0xfffffff8,%%ecx\n"
-        "jz 2f\n"
-        "subl $8,%%ecx\n"
-        "jmp 1f\n"
-        ".align 16\n"
-
-        "1:\n"
-        "testl %%ebx,28(%%edx,%%ecx,4)\n"
-        "movl %%eax,(%%edx,%%ecx,4)\n"
-        "movl %%eax,4(%%edx,%%ecx,4)\n"
-        "movl %%eax,8(%%edx,%%ecx,4)\n"
-        "movl %%eax,12(%%edx,%%ecx,4)\n"
-        "movl %%eax,16(%%edx,%%ecx,4)\n"
-        "movl %%eax,20(%%edx,%%ecx,4)\n"
-        "movl %%eax,24(%%edx,%%ecx,4)\n"
-        "movl %%eax,28(%%edx,%%ecx,4)\n"
-        "subl $8,%%ecx\n"
-        "jge 1b\n"
-
-        "2:\n"
-        "movl %2,%%ecx\n"
-        "movl %%ecx,%%ebx\n"
-        "andl $7,%%ecx\n"
-        "jz 5f\n"
-        "andl $0xfffffff8,%%ebx\n"
-        "leal (%%edx,%%ebx,4),%%edx\n"
-        "testl %%eax,(%%edx)\n"
-        "cmpl $4,%%ecx\n"
-        "jl 3f\n"
-        "movl %%eax,(%%edx)\n"
-        "movl %%eax,4(%%edx)\n"
-        "movl %%eax,8(%%edx)\n"
-        "movl %%eax,12(%%edx)\n"
-        "addl $16,%%edx\n"
-        "subl $4,%%ecx\n"
-
-        "3:\n"
-        "cmpl $2,%%ecx\n"
-        "jl 4f\n"
-        "movl %%eax,(%%edx)\n"
-        "movl %%eax,4(%%edx)\n"
-        "addl $8,%%edx\n"
-        "subl $2,%%ecx\n"
-        "4:\n"
-        "cmpl $1,%%ecx\n"
-        "jl 5f\n"
-        "movl %%eax,(%%edx)\n"
-
-        "5:\n"
-        :
-        : "m" (dest), "m" (constant), "m" (count)
-        : "%edx", "%eax", "%ecx", "%ebx"
-    );
-#endif
-}
-#endif
-
-
-// optimized memory copy routine that handles all alignment
-// cases and block sizes efficiently
-#ifdef ENABLE_ASM
-void Com_Memcpy (void* dest, const void* src, const size_t count)
-{
-	Com_Prefetch (src, count/*, PRE_READ*/);
-#ifdef _MSC_VER
-	__asm
-	{
-		push	edi
-		push	esi
-		mov		ecx,count
-		cmp		ecx,0						// count = 0 check (just to be on the safe side)
-		je		outta
-		mov		edx,dest
-		mov		ebx,src
-		cmp		ecx,32						// padding only?
-		jl		padding
-
-		mov		edi,ecx
-		and		edi,~31					// edi = count&~31
-		sub		edi,32
-
-		align 16
-loopMisAligned:
-		mov		eax,[ebx + edi + 0 + 0*8]
-		mov		esi,[ebx + edi + 4 + 0*8]
-		mov		[edx+edi+0 + 0*8],eax
-		mov		[edx+edi+4 + 0*8],esi
-		mov		eax,[ebx + edi + 0 + 1*8]
-		mov		esi,[ebx + edi + 4 + 1*8]
-		mov		[edx+edi+0 + 1*8],eax
-		mov		[edx+edi+4 + 1*8],esi
-		mov		eax,[ebx + edi + 0 + 2*8]
-		mov		esi,[ebx + edi + 4 + 2*8]
-		mov		[edx+edi+0 + 2*8],eax
-		mov		[edx+edi+4 + 2*8],esi
-		mov		eax,[ebx + edi + 0 + 3*8]
-		mov		esi,[ebx + edi + 4 + 3*8]
-		mov		[edx+edi+0 + 3*8],eax
-		mov		[edx+edi+4 + 3*8],esi
-		sub		edi,32
-		jge		loopMisAligned
-
-		mov		edi,ecx
-		and		edi,~31
-		add		ebx,edi					// increase src pointer
-		add		edx,edi					// increase dst pointer
-		and		ecx,31					// new count
-		jz		outta					// if count = 0, get outta here
-
-padding:
-		cmp		ecx,16
-		jl		skip16
-		mov		eax,dword ptr [ebx]
-		mov		dword ptr [edx],eax
-		mov		eax,dword ptr [ebx+4]
-		mov		dword ptr [edx+4],eax
-		mov		eax,dword ptr [ebx+8]
-		mov		dword ptr [edx+8],eax
-		mov		eax,dword ptr [ebx+12]
-		mov		dword ptr [edx+12],eax
-		sub		ecx,16
-		add		ebx,16
-		add		edx,16
-skip16:
-		cmp		ecx,8
-		jl		skip8
-		mov		eax,dword ptr [ebx]
-		mov		dword ptr [edx],eax
-		mov		eax,dword ptr [ebx+4]
-		sub		ecx,8
-		mov		dword ptr [edx+4],eax
-		add		ebx,8
-		add		edx,8
-skip8:
-		cmp		ecx,4
-		jl		skip4
-		mov		eax,dword ptr [ebx]	// here 4-7 bytes
-		add		ebx,4
-		sub		ecx,4
-		mov		dword ptr [edx],eax
-		add		edx,4
-skip4:							// 0-3 remaining bytes
-		cmp		ecx,2
-		jl		skip2
-		mov		ax,word ptr [ebx]	// two bytes
-		cmp		ecx,3				// less than 3?
-		mov		word ptr [edx],ax
-		jl		outta
-		mov		al,byte ptr [ebx+2]	// last byte
-		mov		byte ptr [edx+2],al
-		jmp		outta
-skip2:
-		cmp		ecx,1
-		jl		outta
-		mov		al,byte ptr [ebx]
-		mov		byte ptr [edx],al
-outta:
-		pop		esi
-		pop		edi
-	}
-#else
-    __asm__
-    (
-        "pushl %%edi\n"
-        "pushl %%esi\n"
-        "movl %0,%%ecx\n"
-        "cmpl $0,%%ecx\n"
-        "je 7f\n"
-        "movl %1,%%edx\n"
-        "movl %2,%%ebx\n"
-        "cmpl $32,%%ecx\n"
-        "jl 2f\n"
-        "movl %%ecx,%%edi\n"
-        "andl $0xffffffe1,%%edi\n"
-        "subl $32,%%edi\n"
-        ".align 16\n"
-
-        "1:\n"
-        "movl (%%ebx,%%edi,1),%%eax\n"
-        "movl 0x4(%%ebx,%%edi,1),%%esi\n"
-        "movl %%eax,(%%edx,%%edi,1)\n"
-        "movl %%esi,0x4(%%edx,%%edi,1)\n"
-        "movl 0x8(%%ebx,%%edi,1),%%eax\n"
-        "movl 0xc(%%ebx,%%edi,1),%%esi\n"
-        "movl %%eax,0x8(%%edx,%%edi,1)\n"
-        "movl %%esi,0xc(%%edx,%%edi,1)\n"
-        "movl 0x10(%%ebx,%%edi,1),%%eax\n"
-        "movl 0x14(%%ebx,%%edi,1),%%esi\n"
-        "movl %%eax,0x10(%%edx,%%edi,1)\n"
-        "movl %%esi,0x14(%%edx,%%edi,1)\n"
-        "movl 0x18(%%ebx,%%edi,1),%%eax\n"
-        "movl 0x1c(%%ebx,%%edi,1),%%esi\n"
-        "movl %%eax,0x18(%%edx,%%edi,1)\n"
-        "movl %%esi,0x1c(%%edx,%%edi,1)\n"
-        "subl $32,%%edi\n"
-        "jge 1b\n"
-        "movl %%ecx,%%edi\n"
-        "andl $0xffffffe1,%%edi\n"
-        "addl %%edi,%%ebx\n"
-        "addl %%edi,%%edx\n"
-        "andl $31,%%ecx\n"
-        "jz 7f\n"
-
-        "2:\n"
-        "cmpl $16,%%ecx\n"
-        "jl 3f\n"
-        "movl (%%ebx),%%eax\n"
-        "movl %%eax,(%%edx)\n"
-        "movl 4(%%ebx),%%eax\n"
-        "movl %%eax,4(%%edx)\n"
-        "movl 8(%%ebx),%%eax\n"
-        "movl %%eax,8(%%edx)\n"
-        "movl 12(%%ebx),%%eax\n"
-        "movl %%eax,12(%%edx)\n"
-        "subl $16,%%ecx\n"
-        "addl $16,%%ebx\n"
-        "addl $16,%%edx\n"
-
-        "3:\n"
-        "cmpl $8,%%ecx\n"
-        "jl 4f\n"
-        "movl (%%ebx),%%eax\n"
-        "movl %%eax,(%%edx)\n"
-        "movl 4(%%ebx),%%eax\n"
-        "subl $8,%%ecx\n"
-        "movl %%eax,4(%%edx)\n"
-        "addl $8,%%ebx\n"
-        "addl $8,%%edx\n"
-
-        "4:\n"
-        "cmpl $4,%%ecx\n"
-        "jl 5f\n"
-        "movl (%%ebx),%%eax\n"
-        "addl $4,%%ebx\n"
-        "subl $4,%%ecx\n"
-        "movl %%eax,(%%edx)\n"
-        "addl $4,%%edx\n"
-
-        "5:\n"
-        "cmpl $2,%%ecx\n"
-        "jl 6f\n"
-        "movw (%%ebx),%%ax\n"
-        "cmpl $3,%%ecx\n"
-        "movw %%ax,(%%edx)\n"
-        "jl 7f\n"
-        "movb 2(%%ebx),%%al\n"
-        "movb %%al,2(%%edx)\n"
-        "jmp 7f\n"
-
-        "6:\n"
-        "cmpl $1,%%ecx\n"
-        "jl 7f\n"
-        "movb (%%ebx),%%al\n"
-        "movb %%al,(%%edx)\n"
-
-        "7:\n"
-        "popl %%esi\n"
-        "popl %%edi\n"
-        :
-        : "m" (count), "m" (dest), "m" (src)
-        : "%ecx", "%edx", "%ebx", "%eax"
-    );
-#endif
-}
-#endif
-
-
-#ifdef ENABLE_ASM
-void Com_Memset (void* dest, const int val, const size_t count)
-{
-	unsigned fillval;
-
-	if (count < 8)
-	{
-#ifdef _MSC_VER
-		__asm
-		{
-			mov		edx,dest
-			mov		eax, val
-			mov		ah,al
-			mov		ebx,eax
-			and		ebx, 0xffff
-			shl		eax,16
-			add		eax,ebx				// eax now contains pattern
-			mov		ecx,count
-			cmp		ecx,4
-			jl		skip4
-			mov		[edx],eax			// copy first dword
-			add		edx,4
-			sub		ecx,4
-	skip4:	cmp		ecx,2
-			jl		skip2
-			mov		word ptr [edx],ax	// copy 2 bytes
-			add		edx,2
-			sub		ecx,2
-	skip2:	cmp		ecx,0
-			je		skip1
-			mov		byte ptr [edx],al	// copy single byte
-	skip1:
-		}
-#else
-	__asm__
-	(
-		"movl %0,%%edx\n"
-		"movl %1,%%eax\n"
-		"movb %%al,%%ah\n"
-		"movl %%eax,%%ebx\n"
-		"andl $0xffff,%%ebx\n"
-		"shll $16,%%eax\n"
-		"addl %%ebx,%%eax\n"
-		"movl %2,%%ecx\n"
-		"cmpl $4,%%ecx\n"
-		"jl 1f\n"
-		"movl %%eax,(%%edx)\n"
-		"addl $4,%%edx\n"
-		"subl $4,%%ecx\n"
-
-		"1:\n"
-		"cmpl $2,%%ecx\n"
-		"jl 2f\n"
-		"movw %%ax,(%%edx)\n"
-		"addl $2,%%edx\n"
-		"subl $2,%%ecx\n"
-
-		"2:\n"
-		"cmpl $0,%%ecx\n"
-		"je 3f\n"
-		"movb %%al,(%%edx)\n"
-
-		"3:\n"
-		:
-		: "m" (dest), "m" (val), "m" (count)
-		: "%edx", "%eax", "%ebx", "%ecx"
-	);
-#endif
-		return;
-	}
-
-	fillval = val;
-
-	fillval = fillval|(fillval<<8);
-	fillval = fillval|(fillval<<16);		// fill dword with 8-bit pattern
-
-	_copyDWord ((unsigned*)(dest),fillval, count/4);
-
-#ifdef _MSC_VER
-	__asm									// padding of 0-3 bytes
-	{
-		mov		ecx,count
-		mov		eax,ecx
-		and		ecx,3
-		jz		skipA
-		and		eax,~3
-		mov		ebx,dest
-		add		ebx,eax
-		mov		eax,fillval
-		cmp		ecx,2
-		jl		skipB
-		mov		word ptr [ebx],ax
-		cmp		ecx,2
-		je		skipA
-		mov		byte ptr [ebx+2],al
-		jmp		skipA
-skipB:
-		cmp		ecx,0
-		je		skipA
-		mov		byte ptr [ebx],al
-skipA:
-	}
-#else
-	__asm__
-	(
-		"movl %0,%%ecx\n"
-		"movl %%ecx,%%eax\n"
-		"andl $3,%%ecx\n"
-		"jz 2f\n"
-		"andl $0xfffffffd,%%eax\n"
-		"movl %1,%%ebx\n"
-		"addl %%eax,%%ebx\n"
-		"movl %2,%%eax\n"
-		"cmpl $2,%%ecx\n"
-		"jl 1f\n"
-		"movw %%ax,(%%ebx)\n"
-		"cmpl $2,%%ecx\n"
-		"je 2f\n"
-		"movb %%al,2(%%ebx)\n"
-		"jmp 2f\n"
-
-		"1:\n"
-		"cmpl $0,%%ecx\n"
-		"je 2f\n"
-		"movb %%al,(%%ebx)\n"
-
-		"2:\n"
-		:
-		: "m" (count), "m" (dest), "m" (fillval)
-		: "%ecx", "%eax", "%ebx"
-	);
-#endif
-}
-#endif
-
-
-#ifdef ENABLE_ASM
-bool Com_Memcmp (const void *src0, const void *src1, const unsigned count)
-{
-	unsigned i;
-	// MMX version anyone?
-
-	if (count >= 16)
-	{
-		unsigned *dw = (unsigned*)(src0);
-		unsigned *sw = (unsigned*)(src1);
-
-		unsigned nm2 = count/16;
-		for (i = 0; i < nm2; i+=4)
-		{
-			unsigned tmp = (dw[i+0]-sw[i+0])|(dw[i+1]-sw[i+1])|
-						  (dw[i+2]-sw[i+2])|(dw[i+3]-sw[i+3]);
-			if (tmp)
-				return false;
-		}
-	}
-	if (count & 15)
-	{
-		byte *d = (byte*)src0;
-		byte *s = (byte*)src1;
-		for (i = count & 0xfffffff0; i < count; i++)
-		if (d[i]!=s[i])
-			return false;
-	}
-
-	return true;
-}
-#endif
 
 
 //void Sys_Error (char *error, ...)
@@ -7895,7 +7325,7 @@ void InitClientPersistant (gclient_t *client, char *userinfo)
 	int			integer;
 	gitem_t		*item;
 
-	Com_Memset (&client->pers, 0, sizeof(client->pers));
+	memset (&client->pers, 0, sizeof(client->pers));
 
 	item = FindItem("Blaster");
 	client->pers.selected_item = ITEM_INDEX(item);
@@ -10590,7 +10020,7 @@ void PutClientInServer (edict_t *ent)
 		char		userinfo[MAX_INFO_STRING];
 
 		resp = client->resp;
-		Com_Memcpy (userinfo, client->pers.userinfo, sizeof(userinfo));
+		memcpy (userinfo, client->pers.userinfo, sizeof(userinfo));
 		InitClientPersistant (client, userinfo);
 		ClientUserinfoChanged (ent, userinfo);
 	}
@@ -10599,7 +10029,7 @@ void PutClientInServer (edict_t *ent)
 		char		userinfo[MAX_INFO_STRING];
 
 		resp = client->resp;
-		Com_Memcpy (userinfo, client->pers.userinfo, sizeof(userinfo));
+		memcpy (userinfo, client->pers.userinfo, sizeof(userinfo));
 		resp.coop_respawn.game_helpchanged = client->pers.game_helpchanged;
 		resp.coop_respawn.helpchanged = client->pers.helpchanged;
 		client->pers = resp.coop_respawn;
@@ -10608,11 +10038,11 @@ void PutClientInServer (edict_t *ent)
 			client->pers.score = resp.score;
 	}
 	else
-		Com_Memset (&resp, 0, sizeof(resp));
+		memset (&resp, 0, sizeof(resp));
 
 	// clear everything but the persistant data
 	saved = client->pers;
-	Com_Memset (client, 0, sizeof(*client));
+	memset (client, 0, sizeof(*client));
 	client->pers = saved;
 	if (client->pers.health <= 0)
 		InitClientPersistant(client, client->pers.userinfo);
@@ -10648,7 +10078,7 @@ void PutClientInServer (edict_t *ent)
 	VectorClear (ent->velocity);
 
 	// clear playerstate values
-	Com_Memset (&ent->client->ps, 0, sizeof(client->ps));
+	memset (&ent->client->ps, 0, sizeof(client->ps));
 
 	client->ps.pmove.origin[0] = spawn_origin[0]*8;
 	client->ps.pmove.origin[1] = spawn_origin[1]*8;
@@ -11758,7 +11188,7 @@ void G_FreeEdict (edict_t *ed)
 	if ((ed - g_edicts) <= (maxclients_cvar->value + BODY_QUEUE_SIZE))
 		return;
 
-	Com_Memset (ed, 0, sizeof(*ed));
+	memset (ed, 0, sizeof(*ed));
 	ed->classname = "freed";
 	ed->freetime = level.time;
 	ed->inuse = false;
@@ -12127,7 +11557,7 @@ char *ED_ParseEdict (char *data, edict_t *ent)
 	char		*com_token;
 
 	init = false;
-	Com_Memset (&st, 0, sizeof(st));
+	memset (&st, 0, sizeof(st));
 
 // go through all the dictionary pairs
 	while (1)
@@ -12157,7 +11587,7 @@ char *ED_ParseEdict (char *data, edict_t *ent)
 	}
 
 	if (!init)
-		Com_Memset (ent, 0, sizeof(*ent));
+		memset (ent, 0, sizeof(*ent));
 
 	return data;
 }
@@ -12230,7 +11660,7 @@ void PrecacheItem (gitem_t *it)
 		len = s-start;
 		if (len >= MAX_QPATH || len < 5)
 			gi.error ("PrecacheItem: %s has bad precache string", it->classname);
-		Com_Memcpy (data, start, len);
+		memcpy (data, start, len);
 		data[len] = 0;
 		if (*s)
 			s++;
@@ -14984,8 +14414,8 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 
 	gi.FreeTags (TAG_LEVEL);
 
-	Com_Memset (&level, 0, sizeof(level));
-	Com_Memset (g_edicts, 0, game.maxentities * sizeof (g_edicts[0]));
+	memset (&level, 0, sizeof(level));
+	memset (g_edicts, 0, game.maxentities * sizeof (g_edicts[0]));
 
 	strncpy (level.mapname, mapname, sizeof(level.mapname)-1);
 	strncpy (game.spawnpoint, spawnpoint, sizeof(game.spawnpoint)-1);
@@ -15914,7 +15344,7 @@ void LoadStatusbarProgram()
 		goto old;
 	}
 
-	Com_Memset(buffer, 0, sizeof(buffer));
+	memset(buffer, 0, sizeof(buffer));
 	len = fread (buffer, 1, sizeof(buffer), f);
 	fclose (f);
 
@@ -17027,7 +16457,7 @@ void WriteGame (char *filename, bool autosave)
 
 /// Berserker: not need more
 /*
-	Com_Memset (str, 0, sizeof(str));
+	memset (str, 0, sizeof(str));
 	strcpy (str, __DATE__);
 	fwrite (str, sizeof(str), 1, f);
 */
@@ -17308,7 +16738,7 @@ void ReadLevel (char *filename)
 	gi.FreeTags (TAG_LEVEL);
 
 	// wipe all the entities
-	Com_Memset (g_edicts, 0, game.maxentities*sizeof(g_edicts[0]));
+	memset (g_edicts, 0, game.maxentities*sizeof(g_edicts[0]));
 	globals.num_edicts = maxclients_cvar->value+1;
 
 	// check edict size
@@ -17364,7 +16794,7 @@ void ReadLevel (char *filename)
 		ReadEdict (f, ent);
 
 		// let the server rebuild world links for this ent
-		Com_Memset (&ent->area, 0, sizeof(ent->area));
+		memset (&ent->area, 0, sizeof(ent->area));
 		gi.linkentity (ent);
 	}
 
@@ -17608,7 +17038,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	{
 
 		// set up for pmove
-		Com_Memset (&pm, 0, sizeof(pm));
+		memset (&pm, 0, sizeof(pm));
 
 		if (ent->movetype == MOVETYPE_NOCLIP)
 			client->ps.pmove.pm_type = PM_SPECTATOR;
@@ -17628,7 +17058,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 			pm.s.velocity[i] = ent->velocity[i]*8;
 		}
 
-		if (Com_Memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
+		if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s)))
 			pm.snapinitial = true;
 
 		pm.cmd = *ucmd;
@@ -17863,7 +17293,7 @@ bool SV_FilterPacket (char *from)
 
 void InitClientResp (gclient_t *client)
 {
-	Com_Memset (&client->resp, 0, sizeof(client->resp));
+	memset (&client->resp, 0, sizeof(client->resp));
 	client->resp.enterframe = level.framenum;
 	client->resp.coop_respawn = client->pers;
 }
@@ -18971,7 +18401,7 @@ void G_CheckChaseStats (edict_t *ent)
 		cl = g_edicts[i].client;
 		if (!g_edicts[i].inuse || cl->chase_target != ent)
 			continue;
-		Com_Memcpy(cl->ps.stats, ent->client->ps.stats, sizeof(cl->ps.stats));
+		memcpy(cl->ps.stats, ent->client->ps.stats, sizeof(cl->ps.stats));
 		G_SetSpectatorStats(g_edicts + i);
 	}
 }

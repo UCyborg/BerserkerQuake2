@@ -65,36 +65,7 @@ char *strlwr(char *str)
 
 void SinCos( float radians, float *sine, float *cosine )
 {
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-	_asm
-	{
-		fld	dword ptr [radians]
-		fsincos
-
-		mov edx, dword ptr [cosine]
-		mov eax, dword ptr [sine]
-
-		fstp dword ptr [edx]
-		fstp dword ptr [eax]
-	}
-#else
-	__asm__
-	(
-		"flds %0\n"
-		"fsincos\n"
-
-		"movl %1,%%edx\n"
-		"movl %2,%%eax\n"
-
-		"fstps (%%edx)\n"
-		"fstps (%%eax)\n"
-		:
-		: "m" (radians), "m" (cosine), "m" (sine)
-		: "%edx", "%eax"
-	);
-#endif
-#elif defined (__linux__)
+#ifdef __linux__
 	sincosf(radians, sine, cosine);
 #else
 	*sine = sinf(radians);
@@ -129,7 +100,7 @@ void *Hunk_Begin (int maxsize, char *name)
 	int l = strlen(name);
 	if (l >= MAX_OSPATH)
 		l = MAX_OSPATH - 1;
-	Memcpy(hunk_name, name, l);
+	memcpy(hunk_name, name, l);
 	hunk_name[l] = 0;
 	membase = (byte*) calloc (maxsize, 1);
 	if (!membase)
@@ -524,12 +495,12 @@ void Huff1TableInit ()
 	int		numhnodes;
 
 	cin.hnodes1 = (int*)Z_Malloc(256*256*2*4, true);
-///	Memset (cin.hnodes1, 0, 256*256*2*4);
+///	memset (cin.hnodes1, 0, 256*256*2*4);
 
 	for (prev=0 ; prev<256 ; prev++)
 	{
-		Memset (cin.h_count,0,sizeof(cin.h_count));
-		Memset (cin.h_used,0,sizeof(cin.h_used));
+		memset (cin.h_count,0,sizeof(cin.h_count));
+		memset (cin.h_used,0,sizeof(cin.h_used));
 
 		// read a row of counts
 		FS_Read (counts, sizeof(counts), cl.cinematic_file);
@@ -944,7 +915,7 @@ again:	if (!Q_strcasecmp (dot, ".pcx"))
 				}
 			}
 			else	// 32
-				Memcpy (scaled, cin.pic, cin.width*cin.height*4);
+				memcpy (scaled, cin.pic, cin.width*cin.height*4);
 
 			// ресэмплируем 32-битную текстуру
 			GL_ResampleTexture (scaled, cin.width, cin.height, trans, scaled_width, scaled_height, false);
@@ -986,7 +957,7 @@ again:	if (!Q_strcasecmp (dot, ".pcx"))
 		{
 			Z_Free(cin.pic);
 			cin.pic = (byte*)Z_Malloc(cin.width*cin.height*4, true);
-			Memcpy (cin.pic, trans, cin.width*cin.height*4);
+			memcpy (cin.pic, trans, cin.width*cin.height*4);
 		}
 
 		cl.cinematicframe = -1;
@@ -1002,7 +973,7 @@ again:	if (!Q_strcasecmp (dot, ".pcx"))
 		{
 			if (palette)
 			{
-				Memcpy (cl.cinematicpalette, palette, sizeof(cl.cinematicpalette));
+				memcpy (cl.cinematicpalette, palette, sizeof(cl.cinematicpalette));
 				if (palette != &d_8to24table[0])
 					Z_Free (palette);
 			}
@@ -1264,7 +1235,7 @@ void S_UpdateBackgroundTrack()
 			fileSamples = fileBytes / (s_backgroundInfo.width * s_backgroundInfo.channels);
 		}
 
-		Memcpy( raw, s_backgroundFile + s_backgroundFile_Start + s_backgroundFile_offset, fileBytes);
+		memcpy( raw, s_backgroundFile + s_backgroundFile_Start + s_backgroundFile_offset, fileBytes);
 		s_backgroundFile_offset += fileBytes;
 
 		// byte swap if needed
@@ -1362,7 +1333,7 @@ size_t ovc_read (void *ptr, size_t size, size_t nmemb, void *datasource)
 	if (copy_size <= 0)
 		return 0;
 	//скопируем данные по полученному указателю
-	Memcpy(ptr, &(ogg_file_buffer[ogg_file_buffer_pos]), copy_size);
+	memcpy(ptr, &(ogg_file_buffer[ogg_file_buffer_pos]), copy_size);
 	//изменим положение в буфере
 	ogg_file_buffer_pos += copy_size;
 	//возвратим количество скопированных данных
@@ -1907,7 +1878,7 @@ void R_VCInit()
 	Com_Printf("Initializing VBO cache...\n");
 	vc_initialised = true;
 
-	Memset(&vcm, 0, sizeof(vcm));
+	memset(&vcm, 0, sizeof(vcm));
 
 	// setup the linked lists
 	vcm.activeVertCache.next = &vcm.activeVertCache;
@@ -1973,28 +1944,7 @@ void R_VCShutdown()
 
 static inline void Com_XOR (byte *const b, const byte num)
 {
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-	__asm
-	{
-		mov ebx, b
-		mov al, num
-		xor [ebx], al
-	}
-#else
-	__asm__
-	(
-		"movl %0,%%ebx\n"
-		"movb %1,%%al\n"
-		"xorb %%al,(%%ebx)\n"
-		:
-		: "m" (b), "m" (num)
-		: "%ebx", "%al"
-	);
-#endif
-#else
 	*b ^= num;
-#endif
 }
 
 
@@ -2011,7 +1961,7 @@ int ZLibDecompress (byte *in, int inlen, byte *out, int outlen, int wbits)
 	z_stream zs;
 	int result;
 
-	Memset (&zs, 0, sizeof(zs));
+	memset (&zs, 0, sizeof(zs));
 
 	zs.next_in = in;
 	zs.avail_in = 0;
@@ -2088,575 +2038,6 @@ int ZLibCompressChunk(byte *in, int len_in, byte *out, int len_out, int method, 
 
 	return zs.total_out;
 }
-
-
-/// Carmack's code
-#ifdef ENABLE_ASM
-void Com_Prefetch (const void *s, const unsigned bytes/*, e_prefetch type*/)
-{
-#ifdef _MSC_VER
-	// write buffer prefetching is performed only if
-	// the processor benefits from it. Read and read/write
-	// prefetching is always performed.
-
-///	switch (type)
-///	{
-///		case PRE_WRITE:
-///			break;
-///		case PRE_READ:
-///		case PRE_READ_WRITE:
-			__asm
-			{
-				mov		ebx,s
-				mov		ecx,bytes
-				cmp		ecx,4096				// clamp to 4kB
-				jle		skipClamp
-				mov		ecx,4096
-skipClamp:
-				add		ecx,0x1f
-				shr		ecx,5					// number of cache lines
-				jz		skip
-				jmp		loopie
-
-				align 16
-loopie:			test	byte ptr [ebx],al
-				add		ebx,32
-				dec		ecx
-				jnz		loopie
-skip:
-			}
-///			break;
-///	}
-#else
-    __asm__
-    (
-        "movl %0,%%ebx\n"
-        "movl %1,%%ecx\n"
-        "cmpl $4096,%%ecx\n"
-        "jle 1f\n"
-        "movl $4096,%%ecx\n"
-
-        "1:\n"
-        "addl $0x1f,%%ecx\n"
-        "shrl $5,%%ecx\n"
-
-        "jz 3f\n"
-        "jmp 2f\n"
-        ".align 16\n"
-
-        "2:\n"
-        "testb %%al,(%%ebx)\n"
-        "addl $32,%%ebx\n"
-        "decl %%ecx\n"
-        "jnz 2b\n"
-
-        "3:\n"
-        :
-        : "m" (s), "m" (bytes)
-        : "%ebx", "%ecx"
-    );
-#endif
-}
-#endif
-
-
-/// Carmack's code
-#ifdef ENABLE_ASM
-void _copyDWord (unsigned *dest, const unsigned constant, const unsigned count)
-{
-#ifdef _MSC_VER
-	__asm
-	{
-			mov		edx,dest
-			mov		eax,constant
-			mov		ecx,count
-			and		ecx,~7
-			jz		padding
-			sub		ecx,8
-			jmp		loopu
-			align	16
-loopu:
-			test	[edx+ecx*4 + 28],ebx		// fetch next block destination to L1 cache
-			mov		[edx+ecx*4 + 0],eax
-			mov		[edx+ecx*4 + 4],eax
-			mov		[edx+ecx*4 + 8],eax
-			mov		[edx+ecx*4 + 12],eax
-			mov		[edx+ecx*4 + 16],eax
-			mov		[edx+ecx*4 + 20],eax
-			mov		[edx+ecx*4 + 24],eax
-			mov		[edx+ecx*4 + 28],eax
-			sub		ecx,8
-			jge		loopu
-padding:	mov		ecx,count
-			mov		ebx,ecx
-			and		ecx,7
-			jz		outta
-			and		ebx,~7
-			lea		edx,[edx+ebx*4]				// advance dest pointer
-			test	[edx+0],eax					// fetch destination to L1 cache
-			cmp		ecx,4
-			jl		skip4
-			mov		[edx+0],eax
-			mov		[edx+4],eax
-			mov		[edx+8],eax
-			mov		[edx+12],eax
-			add		edx,16
-			sub		ecx,4
-skip4:		cmp		ecx,2
-			jl		skip2
-			mov		[edx+0],eax
-			mov		[edx+4],eax
-			add		edx,8
-			sub		ecx,2
-skip2:		cmp		ecx,1
-			jl		outta
-			mov		[edx+0],eax
-outta:
-	}
-#else
-    __asm__
-    (
-        "movl %0,%%edx\n"
-        "movl %1,%%eax\n"
-        "movl %2,%%ecx\n"
-        "andl $0xfffffff8,%%ecx\n"
-        "jz 2f\n"
-        "subl $8,%%ecx\n"
-        "jmp 1f\n"
-        ".align 16\n"
-
-        "1:\n"
-        "testl %%ebx,28(%%edx,%%ecx,4)\n"
-        "movl %%eax,(%%edx,%%ecx,4)\n"
-        "movl %%eax,4(%%edx,%%ecx,4)\n"
-        "movl %%eax,8(%%edx,%%ecx,4)\n"
-        "movl %%eax,12(%%edx,%%ecx,4)\n"
-        "movl %%eax,16(%%edx,%%ecx,4)\n"
-        "movl %%eax,20(%%edx,%%ecx,4)\n"
-        "movl %%eax,24(%%edx,%%ecx,4)\n"
-        "movl %%eax,28(%%edx,%%ecx,4)\n"
-        "subl $8,%%ecx\n"
-        "jge 1b\n"
-
-        "2:\n"
-        "movl %2,%%ecx\n"
-        "movl %%ecx,%%ebx\n"
-        "andl $7,%%ecx\n"
-        "jz 5f\n"
-        "andl $0xfffffff8,%%ebx\n"
-        "leal (%%edx,%%ebx,4),%%edx\n"
-        "testl %%eax,(%%edx)\n"
-        "cmpl $4,%%ecx\n"
-        "jl 3f\n"
-        "movl %%eax,(%%edx)\n"
-        "movl %%eax,4(%%edx)\n"
-        "movl %%eax,8(%%edx)\n"
-        "movl %%eax,12(%%edx)\n"
-        "addl $16,%%edx\n"
-        "subl $4,%%ecx\n"
-
-        "3:\n"
-        "cmpl $2,%%ecx\n"
-        "jl 4f\n"
-        "movl %%eax,(%%edx)\n"
-        "movl %%eax,4(%%edx)\n"
-        "addl $8,%%edx\n"
-        "subl $2,%%ecx\n"
-        "4:\n"
-        "cmpl $1,%%ecx\n"
-        "jl 5f\n"
-        "movl %%eax,(%%edx)\n"
-
-        "5:\n"
-        :
-        : "m" (dest), "m" (constant), "m" (count)
-        : "%edx", "%eax", "%ecx", "%ebx"
-    );
-#endif
-}
-#endif
-
-
-/// Carmack's code
-// optimized memory copy routine that handles all alignment
-// cases and block sizes efficiently
-#ifdef ENABLE_ASM
-void Com_Memcpy (void* dest, const void* src, const size_t count)
-{
-	Com_Prefetch (src, count/*, PRE_READ*/);
-#ifdef _MSC_VER
-	__asm
-	{
-		push	edi
-		push	esi
-		mov		ecx,count
-		cmp		ecx,0						// count = 0 check (just to be on the safe side)
-		je		outta
-		mov		edx,dest
-		mov		ebx,src
-		cmp		ecx,32						// padding only?
-		jl		padding
-
-		mov		edi,ecx
-		and		edi,~31					// edi = count&~31
-		sub		edi,32
-
-		align 16
-loopMisAligned:
-		mov		eax,[ebx + edi + 0 + 0*8]
-		mov		esi,[ebx + edi + 4 + 0*8]
-		mov		[edx+edi+0 + 0*8],eax
-		mov		[edx+edi+4 + 0*8],esi
-		mov		eax,[ebx + edi + 0 + 1*8]
-		mov		esi,[ebx + edi + 4 + 1*8]
-		mov		[edx+edi+0 + 1*8],eax
-		mov		[edx+edi+4 + 1*8],esi
-		mov		eax,[ebx + edi + 0 + 2*8]
-		mov		esi,[ebx + edi + 4 + 2*8]
-		mov		[edx+edi+0 + 2*8],eax
-		mov		[edx+edi+4 + 2*8],esi
-		mov		eax,[ebx + edi + 0 + 3*8]
-		mov		esi,[ebx + edi + 4 + 3*8]
-		mov		[edx+edi+0 + 3*8],eax
-		mov		[edx+edi+4 + 3*8],esi
-		sub		edi,32
-		jge		loopMisAligned
-
-		mov		edi,ecx
-		and		edi,~31
-		add		ebx,edi					// increase src pointer
-		add		edx,edi					// increase dst pointer
-		and		ecx,31					// new count
-		jz		outta					// if count = 0, get outta here
-
-padding:
-		cmp		ecx,16
-		jl		skip16
-		mov		eax,dword ptr [ebx]
-		mov		dword ptr [edx],eax
-		mov		eax,dword ptr [ebx+4]
-		mov		dword ptr [edx+4],eax
-		mov		eax,dword ptr [ebx+8]
-		mov		dword ptr [edx+8],eax
-		mov		eax,dword ptr [ebx+12]
-		mov		dword ptr [edx+12],eax
-		sub		ecx,16
-		add		ebx,16
-		add		edx,16
-skip16:
-		cmp		ecx,8
-		jl		skip8
-		mov		eax,dword ptr [ebx]
-		mov		dword ptr [edx],eax
-		mov		eax,dword ptr [ebx+4]
-		sub		ecx,8
-		mov		dword ptr [edx+4],eax
-		add		ebx,8
-		add		edx,8
-skip8:
-		cmp		ecx,4
-		jl		skip4
-		mov		eax,dword ptr [ebx]	// here 4-7 bytes
-		add		ebx,4
-		sub		ecx,4
-		mov		dword ptr [edx],eax
-		add		edx,4
-skip4:							// 0-3 remaining bytes
-		cmp		ecx,2
-		jl		skip2
-		mov		ax,word ptr [ebx]	// two bytes
-		cmp		ecx,3				// less than 3?
-		mov		word ptr [edx],ax
-		jl		outta
-		mov		al,byte ptr [ebx+2]	// last byte
-		mov		byte ptr [edx+2],al
-		jmp		outta
-skip2:
-		cmp		ecx,1
-		jl		outta
-		mov		al,byte ptr [ebx]
-		mov		byte ptr [edx],al
-outta:
-		pop		esi
-		pop		edi
-	}
-#else
-    __asm__
-    (
-        "pushl %%edi\n"
-        "pushl %%esi\n"
-        "movl %0,%%ecx\n"
-        "cmpl $0,%%ecx\n"
-        "je 7f\n"
-        "movl %1,%%edx\n"
-        "movl %2,%%ebx\n"
-        "cmpl $32,%%ecx\n"
-        "jl 2f\n"
-        "movl %%ecx,%%edi\n"
-        "andl $0xffffffe1,%%edi\n"
-        "subl $32,%%edi\n"
-        ".align 16\n"
-
-        "1:\n"
-        "movl (%%ebx,%%edi,1),%%eax\n"
-        "movl 0x4(%%ebx,%%edi,1),%%esi\n"
-        "movl %%eax,(%%edx,%%edi,1)\n"
-        "movl %%esi,0x4(%%edx,%%edi,1)\n"
-        "movl 0x8(%%ebx,%%edi,1),%%eax\n"
-        "movl 0xc(%%ebx,%%edi,1),%%esi\n"
-        "movl %%eax,0x8(%%edx,%%edi,1)\n"
-        "movl %%esi,0xc(%%edx,%%edi,1)\n"
-        "movl 0x10(%%ebx,%%edi,1),%%eax\n"
-        "movl 0x14(%%ebx,%%edi,1),%%esi\n"
-        "movl %%eax,0x10(%%edx,%%edi,1)\n"
-        "movl %%esi,0x14(%%edx,%%edi,1)\n"
-        "movl 0x18(%%ebx,%%edi,1),%%eax\n"
-        "movl 0x1c(%%ebx,%%edi,1),%%esi\n"
-        "movl %%eax,0x18(%%edx,%%edi,1)\n"
-        "movl %%esi,0x1c(%%edx,%%edi,1)\n"
-        "subl $32,%%edi\n"
-        "jge 1b\n"
-        "movl %%ecx,%%edi\n"
-        "andl $0xffffffe1,%%edi\n"
-        "addl %%edi,%%ebx\n"
-        "addl %%edi,%%edx\n"
-        "andl $31,%%ecx\n"
-        "jz 7f\n"
-
-        "2:\n"
-        "cmpl $16,%%ecx\n"
-        "jl 3f\n"
-        "movl (%%ebx),%%eax\n"
-        "movl %%eax,(%%edx)\n"
-        "movl 4(%%ebx),%%eax\n"
-        "movl %%eax,4(%%edx)\n"
-        "movl 8(%%ebx),%%eax\n"
-        "movl %%eax,8(%%edx)\n"
-        "movl 12(%%ebx),%%eax\n"
-        "movl %%eax,12(%%edx)\n"
-        "subl $16,%%ecx\n"
-        "addl $16,%%ebx\n"
-        "addl $16,%%edx\n"
-
-        "3:\n"
-        "cmpl $8,%%ecx\n"
-        "jl 4f\n"
-        "movl (%%ebx),%%eax\n"
-        "movl %%eax,(%%edx)\n"
-        "movl 4(%%ebx),%%eax\n"
-        "subl $8,%%ecx\n"
-        "movl %%eax,4(%%edx)\n"
-        "addl $8,%%ebx\n"
-        "addl $8,%%edx\n"
-
-        "4:\n"
-        "cmpl $4,%%ecx\n"
-        "jl 5f\n"
-        "movl (%%ebx),%%eax\n"
-        "addl $4,%%ebx\n"
-        "subl $4,%%ecx\n"
-        "movl %%eax,(%%edx)\n"
-        "addl $4,%%edx\n"
-
-        "5:\n"
-        "cmpl $2,%%ecx\n"
-        "jl 6f\n"
-        "movw (%%ebx),%%ax\n"
-        "cmpl $3,%%ecx\n"
-        "movw %%ax,(%%edx)\n"
-        "jl 7f\n"
-        "movb 2(%%ebx),%%al\n"
-        "movb %%al,2(%%edx)\n"
-        "jmp 7f\n"
-
-        "6:\n"
-        "cmpl $1,%%ecx\n"
-        "jl 7f\n"
-        "movb (%%ebx),%%al\n"
-        "movb %%al,(%%edx)\n"
-
-        "7:\n"
-        "popl %%esi\n"
-        "popl %%edi\n"
-        :
-        : "m" (count), "m" (dest), "m" (src)
-        : "%ecx", "%edx", "%ebx", "%eax"
-    );
-#endif
-}
-#endif
-
-
-/// Carmack's code
-#ifdef ENABLE_ASM
-void Com_Memset (void* dest, const int val, const size_t count)
-{
-	unsigned fillval;
-
-	if (count < 8)
-	{
-#ifdef _MSC_VER
-		__asm
-		{
-			mov		edx,dest
-			mov		eax, val
-			mov		ah,al
-			mov		ebx,eax
-			and		ebx, 0xffff
-			shl		eax,16
-			add		eax,ebx				// eax now contains pattern
-			mov		ecx,count
-			cmp		ecx,4
-			jl		skip4
-			mov		[edx],eax			// copy first dword
-			add		edx,4
-			sub		ecx,4
-	skip4:	cmp		ecx,2
-			jl		skip2
-			mov		word ptr [edx],ax	// copy 2 bytes
-			add		edx,2
-			sub		ecx,2
-	skip2:	cmp		ecx,0
-			je		skip1
-			mov		byte ptr [edx],al	// copy single byte
-	skip1:
-		}
-#else
-	__asm__
-	(
-		"movl %0,%%edx\n"
-		"movl %1,%%eax\n"
-		"movb %%al,%%ah\n"
-		"movl %%eax,%%ebx\n"
-		"andl $0xffff,%%ebx\n"
-		"shll $16,%%eax\n"
-		"addl %%ebx,%%eax\n"
-		"movl %2,%%ecx\n"
-		"cmpl $4,%%ecx\n"
-		"jl 1f\n"
-		"movl %%eax,(%%edx)\n"
-		"addl $4,%%edx\n"
-		"subl $4,%%ecx\n"
-
-		"1:\n"
-		"cmpl $2,%%ecx\n"
-		"jl 2f\n"
-		"movw %%ax,(%%edx)\n"
-		"addl $2,%%edx\n"
-		"subl $2,%%ecx\n"
-
-		"2:\n"
-		"cmpl $0,%%ecx\n"
-		"je 3f\n"
-		"movb %%al,(%%edx)\n"
-
-		"3:\n"
-		:
-		: "m" (dest), "m" (val), "m" (count)
-		: "%edx", "%eax", "%ebx", "%ecx"
-	);
-#endif
-		return;
-	}
-
-	fillval = val;
-
-	fillval = fillval|(fillval<<8);
-	fillval = fillval|(fillval<<16);		// fill dword with 8-bit pattern
-
-	_copyDWord ((unsigned*)(dest),fillval, count/4);
-
-#ifdef _MSC_VER
-	__asm									// padding of 0-3 bytes
-	{
-		mov		ecx,count
-		mov		eax,ecx
-		and		ecx,3
-		jz		skipA
-		and		eax,~3
-		mov		ebx,dest
-		add		ebx,eax
-		mov		eax,fillval
-		cmp		ecx,2
-		jl		skipB
-		mov		word ptr [ebx],ax
-		cmp		ecx,2
-		je		skipA
-		mov		byte ptr [ebx+2],al
-		jmp		skipA
-skipB:
-		cmp		ecx,0
-		je		skipA
-		mov		byte ptr [ebx],al
-skipA:
-	}
-#else
-	__asm__
-	(
-		"movl %0,%%ecx\n"
-		"movl %%ecx,%%eax\n"
-		"andl $3,%%ecx\n"
-		"jz 2f\n"
-		"andl $0xfffffffd,%%eax\n"
-		"movl %1,%%ebx\n"
-		"addl %%eax,%%ebx\n"
-		"movl %2,%%eax\n"
-		"cmpl $2,%%ecx\n"
-		"jl 1f\n"
-		"movw %%ax,(%%ebx)\n"
-		"cmpl $2,%%ecx\n"
-		"je 2f\n"
-		"movb %%al,2(%%ebx)\n"
-		"jmp 2f\n"
-
-		"1:\n"
-		"cmpl $0,%%ecx\n"
-		"je 2f\n"
-		"movb %%al,(%%ebx)\n"
-
-		"2:\n"
-		:
-		: "m" (count), "m" (dest), "m" (fillval)
-		: "%ecx", "%eax", "%ebx"
-	);
-#endif
-}
-#endif
-
-
-/// Carmack's code
-#ifdef ENABLE_ASM
-bool Com_Memcmp (const void *src0, const void *src1, const unsigned count)
-{
-	unsigned i;
-	// MMX version anyone?
-
-	if (count >= 16)
-	{
-		unsigned *dw = (unsigned *)(src0);
-		unsigned *sw = (unsigned *)(src1);
-
-		unsigned nm2 = count/16;
-		for (i = 0; i < nm2; i+=4)
-		{
-			unsigned tmp = (dw[i+0]-sw[i+0])|(dw[i+1]-sw[i+1])|
-						  (dw[i+2]-sw[i+2])|(dw[i+3]-sw[i+3]);
-			if (tmp)
-				return false;
-		}
-	}
-	if (count & 15)
-	{
-		byte *d = (byte*)src0;
-		byte *s = (byte*)src1;
-		for (i = count & 0xfffffff0; i < count; i++)
-		if (d[i]!=s[i])
-			return false;
-	}
-
-	return true;
-}
-#endif
 
 
 float	frand()
@@ -2765,7 +2146,7 @@ void *Z_TagMalloc (int size, int tag, bool crash)
 			stag="";
 		Com_Error (ERR_FATAL, "Z_Malloc: failed on allocation of %i bytes%s", size, stag);
 	}
-	Memset (z, 0, size);
+	memset (z, 0, size);
 	z_count++;
 	z_bytes += size;
 	z->magic = Z_MAGIC;
@@ -2879,56 +2260,7 @@ void Swap_Init ()
 }
 
 
-// Fast 15 cycle asm dot product, credits to Golgotha
-#ifdef ENABLE_ASM
-static inline float DotProduct(const float v1[3], const float v2[3])
-{
-	float dotret;
-
-#ifdef _MSC_VER
-	__asm
-	{
-		mov ecx, v1
-		mov eax, v2
-
-		;optimized dot product		;15 cycles
-		fld dword ptr   [eax+0]     ;starts & ends on cycle 0
-		fmul dword ptr  [ecx+0]     ;starts on cycle 1
-		fld dword ptr   [eax+4]     ;starts & ends on cycle 2
-		fmul dword ptr  [ecx+4]     ;starts on cycle 3
-		fld dword ptr   [eax+8]     ;starts & ends on cycle 4
-		fmul dword ptr  [ecx+8]     ;starts on cycle 5
-		fxch            st(1)       ;no cost
-		faddp           st(2),st(0) ;starts on cycle 6, stalls for cycles 7-8
-		faddp           st(1),st(0) ;starts on cycle 9, stalls for cycles 10-12
-		fstp dword ptr  [dotret]    ;starts on cycle 13, ends on cycle 14
-	}
-#else
-	__asm__
-	(
-		"movl %1,%%ecx\n"
-		"movl %2,%%eax\n"
-		"flds (%%eax)\n"
-		"fmuls (%%ecx)\n"
-		"flds 4(%%eax)\n"
-		"fmuls 4(%%ecx)\n"
-		"flds 8(%%eax)\n"
-		"fmuls 8(%%ecx)\n"
-		"fxch %%st(1)\n"
-		"faddp %%st(0),%%st(2)\n"
-		"faddp %%st(0),%%st(1)\n"
-		"fstps %0\n"
-		: "=m" (dotret)
-		: "m" (v1), "m" (v2)
-		: "%ecx", "%eax"
-	);
-#endif
-
-	return dotret;
-}
-#else
 #define DotProduct(x,y) ((x)[0]*(y)[0]+(x)[1]*(y)[1]+(x)[2]*(y)[2])
-#endif
 
 
 void strRemoveColors(char *str, char *strbuf)
@@ -3085,7 +2417,7 @@ void IN_Shutdown ()
 
 void SZ_Init (sizebuf_t *buf, byte *data, int length)
 {
-	Memset (buf, 0, sizeof(*buf));
+	memset (buf, 0, sizeof(*buf));
 	buf->data = data;
 	buf->maxsize = length;
 }
@@ -3117,7 +2449,7 @@ char *SZ_GetSpace (sizebuf_t *buf, int length)
 
 void SZ_Write (sizebuf_t *buf, void *data, int length)
 {
-	Memcpy (SZ_GetSpace(buf,length),data,length);
+	memcpy (SZ_GetSpace(buf,length),data,length);
 }
 
 
@@ -3130,12 +2462,12 @@ void SZ_Print (sizebuf_t *buf, char *data)
 	if (buf->cursize)
 	{
 		if (buf->data[buf->cursize-1])
-			Memcpy ((byte *)SZ_GetSpace(buf, len),data,len); // no trailing 0
+			memcpy ((byte *)SZ_GetSpace(buf, len),data,len); // no trailing 0
 		else
-			Memcpy ((byte *)SZ_GetSpace(buf, len-1)-1,data,len); // write over trailing 0
+			memcpy ((byte *)SZ_GetSpace(buf, len-1)-1,data,len); // write over trailing 0
 	}
 	else
-		Memcpy ((byte *)SZ_GetSpace(buf, len),data,len);
+		memcpy ((byte *)SZ_GetSpace(buf, len),data,len);
 }
 
 
@@ -3252,8 +2584,8 @@ void Con_Linefeed ()
 	if (con.display == con.current)
 		con.display++;
 	con.current++;
-	Memset (&con.text[(con.current%con.totallines)*con.linewidth], ' ', con.linewidth);
-	Memset (&con.color[(con.current%con.totallines)*con.linewidth], 7, con.linewidth);
+	memset (&con.text[(con.current%con.totallines)*con.linewidth], ' ', con.linewidth);
+	memset (&con.color[(con.current%con.totallines)*con.linewidth], 7, con.linewidth);
 }
 
 
@@ -3403,7 +2735,7 @@ void Sys_ConsoleOutput (char *string)
 	if (console_textlen)
 	{
 		text[0] = '\r';
-		Memset(&text[1], ' ', console_textlen);
+		memset(&text[1], ' ', console_textlen);
 		text[console_textlen+1] = '\r';
 		text[console_textlen+2] = 0;
 		WriteFile(houtput, text, console_textlen+2, &dummy, NULL);
@@ -3704,7 +3036,7 @@ void Cmd_Exec_f ()
 
 	// the file doesn't have a trailing 0, so we need to copy it off
 	f2 = (char*) Z_Malloc(len+1, true);
-	Memcpy (f2, f, len);
+	memcpy (f2, f, len);
 	f2[len] = 0;
 
 	Cbuf_InsertText (f2);
@@ -3850,7 +3182,7 @@ void Init_Palette ()
 	else
 		mypal = false;
 
-	Memcpy(d_8to24table, pal, 768);
+	memcpy(d_8to24table, pal, 768);
 	q2_palette_initialized = true;
 
 	if(pic)
@@ -4005,7 +3337,7 @@ void GL_ShutdownMaterials()
 		if (!material->registration_sequence)
 			continue;		// free material_t slot
 		// free it
-		Memset (material, 0, sizeof(*material));
+		memset (material, 0, sizeof(*material));
 	}
 }
 
@@ -4022,7 +3354,7 @@ void GL_ShutdownImages()
 			continue;		// free image_t slot
 		// free it
 		glDeleteTextures (1, &image->texnum);
-		Memset (image, 0, sizeof(*image));
+		memset (image, 0, sizeof(*image));
 	}
 
 // Berserker's fix for old Q2 bug:
@@ -4521,7 +3853,7 @@ void GL_ScreenShot_TGA(char *checkname, int len_name, bool silent)
 	c = 18+w*h*bytesize;
 
 	img_bmpbits = (byte*) Z_Malloc(c, true);
-///	Memset (buffer, 0, 18);
+///	memset (buffer, 0, 18);
 	img_bmpbits[2] = 2;		// uncompressed type
 	img_bmpbits[12] = w&255;
 	img_bmpbits[13] = w>>8;
@@ -4819,7 +4151,7 @@ void GL_EnvScreenShot_f ()
 	if (!scaled)
 		goto exit1;
 
-	Memset(tgaHeader, 0, 18);
+	memset(tgaHeader, 0, 18);
 	tgaHeader[2] = 2;
 	tgaHeader[12] = tgaHeader[14] = envShotSize & 255;
 	tgaHeader[13] = tgaHeader[15] = envShotSize >> 8;
@@ -6058,7 +5390,7 @@ void R_InitDefaultTextures ()
 	{
 		if(r_distort->value || r_fullscreen->value)		// r_screenTexture нужна также для bloom !!!
 		{
-			Memset(trans, 0, gl_config.screenTextureSize[0]*gl_config.screenTextureSize[1]*3);	/// т.к. экран-текстура не квадратная, то произведем её очистку, чтоб не было артефактов вне "экрана" (зеленые чёрточки).
+			memset(trans, 0, gl_config.screenTextureSize[0]*gl_config.screenTextureSize[1]*3);	/// т.к. экран-текстура не квадратная, то произведем её очистку, чтоб не было артефактов вне "экрана" (зеленые чёрточки).
 			r_screenTexture = GL_LoadPic ("r_screenTexture", NULL, (byte*)trans, gl_config.screenTextureSize[0], gl_config.screenTextureSize[1], it_pic, 24, true, 0);	/// динамическую текстуру НЕ сжимаем!!! Иначе тормоза!
 		}
 		if(r_fullscreen->value)
@@ -6079,7 +5411,7 @@ void R_InitDefaultTextures ()
 				if(max_bloom_size >= temp)
 					break;
 			}
-///			Memset(trans, 0, max_bloom_size*max_bloom_size*3);
+///			memset(trans, 0, max_bloom_size*max_bloom_size*3);
 			r_bloomTexture = GL_LoadPic ("r_bloomTexture", NULL, (byte*)trans, max_bloom_size, max_bloom_size, it_pic, 24, true, 0);	/// динамическую текстуру НЕ сжимаем!!! Иначе тормоза!
 		}
 	}
@@ -6479,7 +5811,7 @@ image_t *R_LoadLightFilter (int id, char *map)
 		else
 		{
 			nullpixels = (byte*)Z_Malloc(minw*minh*4, true);
-///			Memset(nullpixels, 0, minw*minh*3);
+///			memset(nullpixels, 0, minw*minh*3);
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB+i, 0, GL_RGBA8, minw, minh, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, nullpixels);	// Berserker: using BGRA instead RGB
 			Z_Free(nullpixels);
 		}
@@ -8272,7 +7604,7 @@ mnu3:
 
 void Mod_Init ()
 {
-	Memset (mod_novis, 0xff, sizeof(mod_novis));
+	memset (mod_novis, 0xff, sizeof(mod_novis));
 }
 
 
@@ -10525,8 +9857,8 @@ repeat:
 
 	if (gl_config.occlusion)
 	{
-		Memset(occResults, -9999, sizeof(occResult_t)*MAX_ENTITIES);
-		Memset(r_entities_occUSE, 0, sizeof(int)*MAX_ENTITIES);
+		memset(occResults, -9999, sizeof(occResult_t)*MAX_ENTITIES);
+		memset(r_entities_occUSE, 0, sizeof(int)*MAX_ENTITIES);
 		glGenQueriesARB(MAX_ENTITIES, r_entities_occID);
 	}
 
@@ -10601,7 +9933,7 @@ void Mod_Free (model_t *mod)
 	}
 
 	Hunk_Free (mod->extradata, mod->extradatasize);
-	Memset (mod, 0, sizeof(*mod));
+	memset (mod, 0, sizeof(*mod));
 }
 
 
@@ -11441,7 +10773,7 @@ int FS_FOpenFile (char *filename, FILE **file, bool test, int zip_start)
 						{
 							if(!b_stricmp(ZipCache[i].pak_name, pak->filename))
 							{
-zip_ch:							Memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
+zip_ch:							memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
 								last_zip_number = i;
 								goto clc;
 							}
@@ -11459,7 +10791,7 @@ zip_ch:							Memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уж�
 				strcpy(&ZipCache[slot].pak_name[0], pak->filename);	// Если не нашли zip в кэше, откроем его...
 				if (!PackFileOpen (&ZipCache[slot]))
 					Com_Error(ERR_FATAL, "Error opening pk2-file: %s", pak->filename);
-				Memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
+				memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
 				last_zip_number = slot;
 
 clc:			if(test)
@@ -11582,7 +10914,7 @@ void FS_ClearFileCache(char *name)
 			if (!b_stricmp(fs_cache[i].name, name))
 			{
 				if (i < fs_cache_number-1)
-					Memcpy(&fs_cache[i], &fs_cache[i+1], sizeof(fs_cache_t) * (fs_cache_number-1-i));
+					memcpy(&fs_cache[i], &fs_cache[i+1], sizeof(fs_cache_t) * (fs_cache_number-1-i));
 				fs_cache_number--;
 				return;
 			}
@@ -11674,7 +11006,7 @@ m1:	if (!h && !file_from_pk2 && !file_from_pak)
 	{
 		if(!cached && !ovr)
 			fs_cache[fs_cache_number++].pak = last_zip_number;
-		Memcpy(buf, zipdata, len);
+		memcpy(buf, zipdata, len);
 		Z_Free(zipdata);
 	}
 	else
@@ -12298,7 +11630,7 @@ int DDSDecompress(ddsBuffer_t *dds, unsigned char *pixels)
 
 		default:
 		case DDS_PF_UNKNOWN:
-			Memset(pixels, 0xFF, width * height * 4);
+			memset(pixels, 0xFF, width * height * 4);
 			r = -1;
 			break;
 	}
@@ -12468,7 +11800,7 @@ void LoadJPG (char *name, byte **pic, int *width, int *height)
 ///			for( i = 0; i < cinfo.output_width; i++, img += 3, scan += 3 )
 ///				img[0] = scan[0], img[1] = scan[1], img[2] = scan[2];
 			// Berserker: speed up
-			Memcpy(img, scan, wb);
+			memcpy(img, scan, wb);
 			img += wb;
 		}
 	}
@@ -12484,7 +11816,7 @@ void LoadJPG (char *name, byte **pic, int *width, int *height)
 void PngReadFunc(png_struct *Png, png_bytep buf, png_size_t size)
 {
 	TPngFileBuffer *PngFileBuffer=(TPngFileBuffer*)png_get_io_ptr(Png);
-	Memcpy(buf,PngFileBuffer->Buffer+PngFileBuffer->Pos,size);
+	memcpy(buf,PngFileBuffer->Buffer+PngFileBuffer->Pos,size);
 	PngFileBuffer->Pos+=size;
 }
 
@@ -12910,7 +12242,7 @@ void LoadPCX (char *filename, byte **pic, byte **palette, int *width, int *heigh
 	if (palette)
 	{
 		*palette = (byte*) Z_Malloc(768, true);
-		Memcpy (*palette, (byte *)pcx + len - 768, 768);
+		memcpy (*palette, (byte *)pcx + len - 768, 768);
 	}
 
 	if (width)
@@ -12991,10 +12323,10 @@ void LoadWal (char *filename, byte **pic, byte **palette, int *width, int *heigh
 	{
 		*palette = (byte*) Z_Malloc(768, true);
 ///		Init_Palette();
-		Memcpy (*palette, (byte *)d_8to24table, 768);
+		memcpy (*palette, (byte *)d_8to24table, 768);
 	}
 
-	Memcpy (pix, (byte *)mt + ofs, mt->width * mt->height);
+	memcpy (pix, (byte *)mt + ofs, mt->width * mt->height);
 
 	Z_Free (mt);
 }
@@ -13463,7 +12795,7 @@ bool GL_Upload32 (unsigned *data, int width, int height, imagetype_t type, int s
 			glTexImage2D (GL_TEXTURE_2D, 0, comp, scaled_width, scaled_height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, data);
 			goto done;
 		}
-		Memcpy (scaled, data, width*height*4);
+		memcpy (scaled, data, width*height*4);
 	}
 	else
 		GL_ResampleTexture (data, width, height, scaled, scaled_width, scaled_height, type == it_bump);
@@ -13595,7 +12927,7 @@ void	ParseMaterial(material_t *material, char *s)
 		if (!Q_strcasecmp(token, "decal") && mtr_decal->value)
 		{
 			/// Внимание! Если здесь вызывать загрузку картинки декаля, то словим качественный глюк!!! Не делать этого!
-			Memcpy(material->decal_name, COM_Parse(&s), sizeof(material->decal_name));
+			memcpy(material->decal_name, COM_Parse(&s), sizeof(material->decal_name));
 			continue;
 		}
 		if (!Q_strcasecmp(token, "blend"))
@@ -13607,24 +12939,24 @@ void	ParseMaterial(material_t *material, char *s)
 		if (!Q_strcasecmp(token, "debris") && mtr_debris->value)
 		{
 			/// Внимание! Если здесь вызывать загрузку дебриса, то словим качественный глюк!!! Не делать этого!
-			Memcpy(material->debris_name, COM_Parse(&s), sizeof(material->debris_name));
+			memcpy(material->debris_name, COM_Parse(&s), sizeof(material->debris_name));
 			continue;
 		}
 		if (!Q_strcasecmp(token, "footstep") && mtr_footstep->value)
 		{
-			Memcpy(material->footstep_name, COM_Parse(&s), sizeof(material->footstep_name));
+			memcpy(material->footstep_name, COM_Parse(&s), sizeof(material->footstep_name));
 			continue;
 		}
 		if (mtr_hitsound->value)
 		{
 			if (!Q_strcasecmp(token, "bullethit"))
 			{
-				Memcpy(material->hs_bullet_name, COM_Parse(&s), sizeof(material->hs_bullet_name));
+				memcpy(material->hs_bullet_name, COM_Parse(&s), sizeof(material->hs_bullet_name));
 				continue;
 			}
 			if (!Q_strcasecmp(token, "energyhit"))
 			{
-				Memcpy(material->hs_energy_name, COM_Parse(&s), sizeof(material->hs_energy_name));
+				memcpy(material->hs_energy_name, COM_Parse(&s), sizeof(material->hs_energy_name));
 				continue;
 			}
 		}
@@ -13651,7 +12983,7 @@ material_t	*R_LoadMaterial(char *name, byte *data, unsigned hash)
 	}
 
 	material = &materials[i];
-	Memset(material, 0, sizeof(material_t));
+	memset(material, 0, sizeof(material_t));
 
 	if (strlen(name) >= sizeof(material->name))
 		Com_Error (ERR_DROP, "R_LoadMaterial: \"%s\" is too long", name);
@@ -13737,13 +13069,13 @@ void	ParseFX(image_t *image, char *s)
 		if (!Q_strcasecmp(token, "image"))
 		{
 			/// Внимание! Если здесь вызывать загрузку текстуры, то словим качественный глюк!!! Не делать этого!
-			Memcpy(image->fx_image_name, COM_Parse (&s), sizeof(image->fx_image_name));
+			memcpy(image->fx_image_name, COM_Parse (&s), sizeof(image->fx_image_name));
 			continue;
 		}
 		if (!Q_strcasecmp(token, "detailbump"))
 		{
 			/// Внимание! Если здесь вызывать загрузку текстуры, то словим качественный глюк!!! Не делать этого!
-			Memcpy(image->fx_detail_image_name, COM_Parse (&s), sizeof(image->fx_detail_image_name));
+			memcpy(image->fx_detail_image_name, COM_Parse (&s), sizeof(image->fx_detail_image_name));
 			image->NoDetailBump = false;
 			continue;
 		}
@@ -13939,7 +13271,7 @@ image_t *GL_LoadPic (char *name, char *name0, byte *pic, int width, int height, 
 				if ((width > MAX_TEXTURE_SIZE) || (height > MAX_TEXTURE_SIZE))
 					Com_Error (ERR_DROP, "GL_LoadPic(32): \"%s\" too large", name);
 
-				Memcpy(trans, pic, width*height*4);
+				memcpy(trans, pic, width*height*4);
 			}
 		}
 
@@ -13991,7 +13323,7 @@ image_t *GL_LoadPic (char *name, char *name0, byte *pic, int width, int height, 
 		{
 			if(name0[len-4]=='.')
 			{
-				Memcpy(sname, name0, MAX_QPATH);
+				memcpy(sname, name0, MAX_QPATH);
 				sname[len-4] = 0;
 				len -= 4;
 				name0 = sname;
@@ -14305,7 +13637,7 @@ FS_GetName(fname, name);
 			if(autobump && r_autobump->value)
 			{
 				GenBumpMap ((byte*)&trans[0], tex->width, tex->height, (byte*)&scaled[0]);
-				Memcpy(trans, scaled, sizeof(scaled));
+				memcpy(trans, scaled, sizeof(scaled));
 				image = GL_LoadPic (name, name, (byte*)&trans[0], tex->width, tex->height, it_bump, 32, false, Com_HashKey(name));
 				strcpy(image->name, name);		// Регистрируем картинку под входящим именем
 				return image;
@@ -14761,7 +14093,7 @@ void CL_AddViewWeapon (player_state_t *ps, player_state_t *ops)
 	else
 		offset_down[0] = offset_down[1] = offset_down[2] = offset_right[0] = offset_right[1] = offset_right[2] = 0;
 
-	Memset (&gun, 0, sizeof(gun));
+	memset (&gun, 0, sizeof(gun));
 
 	if (gun_model)
 		gun.model = gun_model;	// development tool
@@ -16461,7 +15793,7 @@ void AddAliasModel (alink_t *alias, blink_t *brush, vec3_t neworg, vec3_t newang
 	vec3_t		org, temp, tempang;
 	vec3_t		forward, right, up;
 
-	Memset (&ent, 0, sizeof(ent));
+	memset (&ent, 0, sizeof(ent));
 
 	ent.model = alias->mdl;
 	if(!ent.model)
@@ -16984,7 +16316,7 @@ void CL_AddPacketEntities (frame_t *frame)
 	// brush models can auto animate their frames
 	autoanim = 2 * cl.time/1000;
 
-	Memset (&ent, 0, sizeof(ent));
+	memset (&ent, 0, sizeof(ent));
 
 	for (pnum = 0 ; pnum<frame->num_entities ; pnum++)
 	{
@@ -17728,7 +17060,7 @@ void PlayerConfig_MenuDraw()
 
 	char scratch[MAX_QPATH];
 
-	Memset( &refdef, 0, sizeof( refdef ) );
+	memset( &refdef, 0, sizeof( refdef ) );
 
 	refdef.x = viddef.width / 2;
 	refdef.y = viddef.height / 2 - 142;
@@ -17745,7 +17077,7 @@ void PlayerConfig_MenuDraw()
 
 		entity_t entity[2];
 
-		Memset( &entity[0], 0, sizeof( entity[0] ) );
+		memset( &entity[0], 0, sizeof( entity[0] ) );
 
 		Com_sprintf( scratch, sizeof( scratch ), "players/%s/tris.md2", s_pmi[s_player_model_box.curvalue].directory );
 		entity[0].model = R_RegisterModel( scratch, 1, false );
@@ -17772,7 +17104,7 @@ void PlayerConfig_MenuDraw()
 		entity[0].backlerp = 1.0-((float)(cls.realtime & 0xff))/255.0;
 
 /// set up weapon model
-		Memset( &entity[1], 0, sizeof( entity[1] ) );
+		memset( &entity[1], 0, sizeof( entity[1] ) );
 
 		if (currentPlayerWeapon && cls.state == ca_active)
 		{
@@ -17836,7 +17168,7 @@ void PlayerConfig_MenuDraw()
 
 		/// Light setup
 		currentshadowlight = &m_light;
-		Memset(currentshadowlight, 0, sizeof(shadowlight_t));
+		memset(currentshadowlight, 0, sizeof(shadowlight_t));
 		VectorSet(currentshadowlight->origin, -100, 100, 76);
 ///		VectorSet(currentshadowlight->color, 1,1,1);
 		float v = scr_3dhud_intensity->value;
@@ -17918,7 +17250,7 @@ void CL_AddBeams ()
 	// add new entities for the beams
 		d = VectorNormalize(dist);
 
-		Memset (&ent, 0, sizeof(ent));
+		memset (&ent, 0, sizeof(ent));
 		if (b->model == cl_mod_lightning)
 		{
 			model_length = 35.0;
@@ -17983,7 +17315,7 @@ void CL_AddExplosions ()
 	float		frac;
 	int			f;
 
-///	Memset (&ent, 0, sizeof(ent));
+///	memset (&ent, 0, sizeof(ent));
 
 	for (i=0, ex=cl_explosions ; i< MAX_EXPLOSIONS ; i++, ex++)
 	{
@@ -18393,7 +17725,7 @@ void CL_AddPlayerBeams ()
 	// add new entities for the beams
 		d = VectorNormalize(dist);
 
-		Memset (&ent, 0, sizeof(ent));
+		memset (&ent, 0, sizeof(ent));
 		if (b->model == cl_mod_heatbeam)
 		{
 			model_length = 32.0;
@@ -18625,7 +17957,7 @@ void CL_ParseClientinfo (int player)
 		len = t - cl.configstrings[player+cs_playerskins];
 		if (len>=sizeof(clname))
 			len=sizeof(clname)-1;
-		Memset(clname, 0, len+1);
+		memset(clname, 0, len+1);
 		strncpy(clname, cl.configstrings[player+cs_playerskins], len);
 		Com_sprintf (mymodel, sizeof(mymodel), "%s\\%s", clname, skin->string);
 		s = mymodel;
@@ -18915,7 +18247,7 @@ void CL_AddClEntities ()
 	active = NULL;
 	tail = NULL;
 
-	Memset (&ent, 0, sizeof(ent));
+	memset (&ent, 0, sizeof(ent));
 	if(!r_teshadows->value)
 		flag_mask = RF_NOCASTSHADOW;
 	else
@@ -19244,7 +18576,7 @@ void CL_AddLocalEntities ()
 		if (!strcmp(amdl_list[am].label, "SkyModel"))
 		{
 			amdl_list[am].nouse = true;
-			Memset (&ent, 0, sizeof(ent));
+			memset (&ent, 0, sizeof(ent));
 			ent.model = amdl_list[am].mdl;
 			if (!ent.model)
 				continue;
@@ -19306,7 +18638,7 @@ noanim:			ent.frame = amdl_list[am].frame;
 			if (!HasSharedLeafs (amdl_list[am].vis, viewvis__))
 				continue;
 
-			Memset (&ent, 0, sizeof(ent));
+			memset (&ent, 0, sizeof(ent));
 			ent.model = amdl_list[am].mdl;
 			VectorCopy(amdl_list[am].origin, ent.origin);
 			VectorCopy(amdl_list[am].angles, ent.angles);
@@ -19420,21 +18752,21 @@ void CL_ComputeVis()
 	}
 
 	if (/*r_novis->value ||*/ r_viewcluster__ == -1 || !r_worldmodel->vis)
-		Memset(&viewvis, 0xff, (r_worldmodel->numleafs+7)>>3);	// all visible
+		memset(&viewvis, 0xff, (r_worldmodel->numleafs+7)>>3);	// all visible
 	else
 	{
 		vis = Mod_ClusterPVS (r_viewcluster__, r_worldmodel);
 		// may have to combine two clusters because of solid water boundaries
 		if (r_viewcluster2__ != r_viewcluster__)
 		{
-			Memcpy (fatvis, vis, (r_worldmodel->numleafs+7)>>3);
+			memcpy (fatvis, vis, (r_worldmodel->numleafs+7)>>3);
 			vis = Mod_ClusterPVS (r_viewcluster2__, r_worldmodel);
 			c = (r_worldmodel->numleafs+31)/32;
 			for (i=0 ; i<c ; i++)
 				((int *)fatvis)[i] |= ((int *)vis)[i];
 			vis = fatvis;
 		}
-		Memcpy(&viewvis__, vis, (r_worldmodel->numleafs+7)>>3);
+		memcpy(&viewvis__, vis, (r_worldmodel->numleafs+7)>>3);
 	}
 }
 
@@ -19499,7 +18831,7 @@ void CL_ParseFrame ()
 	int			len;
 	frame_t		*old;
 
-	Memset (&cl.frame, 0, sizeof(cl.frame));
+	memset (&cl.frame, 0, sizeof(cl.frame));
 
 	cl.frame.serverframe = MSG_ReadLong (&net_message);
 	cl.frame.deltaframe = MSG_ReadLong (&net_message);
@@ -19726,7 +19058,7 @@ bool R_MarkEntityLeaves(entity_t *ent, byte *fatvis)
 
 	areas[8] = CM_LeafArea (CM_PointLeafnum (ent->origin));
 
-	Memset(fatvis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
+	memset(fatvis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
 	for (j=0; j<8; j++)
 	{
 		vec3_t	mins_, maxs_;
@@ -19757,7 +19089,7 @@ bool R_MarkEntityLeaves(entity_t *ent, byte *fatvis)
 		}
 
 		// строим vis-data
-		Memcpy (vis_, CM_ClusterPVS(CM_LeafCluster (CM_PointLeafnum (org))), (((numclusters+31)>>5)<<2));
+		memcpy (vis_, CM_ClusterPVS(CM_LeafCluster (CM_PointLeafnum (org))), (((numclusters+31)>>5)<<2));
 		count = CM_BoxLeafnums (mins_, maxs_, leafs, r_worldmodel->numleafs/*MAX_MAP_LEAFS*/, NULL);
 		if (count < 1)
 			Com_Error (ERR_FATAL, "R_MarkEntityLeaves: count < 1");
@@ -19767,7 +19099,7 @@ bool R_MarkEntityLeaves(entity_t *ent, byte *fatvis)
 		for (i=0 ; i<count ; i++)
 			leafs[i] = CM_LeafCluster(leafs[i]);
 
-		Memset(&vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
+		memset(&vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
 		for (i=0 ; i<count ; i++)
 			vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 		// вырезаем кластеры, которых нет в списке leafs
@@ -19798,7 +19130,7 @@ bool R_MarkEmitLeaves(emit_t *emit, byte *fatvis)
 
 	areas[8] = CM_LeafArea (CM_PointLeafnum (emit->origin));
 
-	Memset(fatvis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
+	memset(fatvis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
 	for (j=0; j<8; j++)
 	{
 		vec3_t	mins_, maxs_;
@@ -19829,7 +19161,7 @@ bool R_MarkEmitLeaves(emit_t *emit, byte *fatvis)
 		}
 
 		// строим vis-data
-		Memcpy (vis_, CM_ClusterPVS(CM_LeafCluster (CM_PointLeafnum (org))), (((numclusters+31)>>5)<<2));
+		memcpy (vis_, CM_ClusterPVS(CM_LeafCluster (CM_PointLeafnum (org))), (((numclusters+31)>>5)<<2));
 		count = CM_BoxLeafnums (mins_, maxs_, leafs, r_worldmodel->numleafs/*MAX_MAP_LEAFS*/, NULL);
 		if (count < 1)
 			Com_Error (ERR_FATAL, "R_MarkEmitLeaves: count < 1");
@@ -19839,7 +19171,7 @@ bool R_MarkEmitLeaves(emit_t *emit, byte *fatvis)
 		for (i=0 ; i<count ; i++)
 			leafs[i] = CM_LeafCluster(leafs[i]);
 
-		Memset(&vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
+		memset(&vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
 		for (i=0 ; i<count ; i++)
 			vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 		// вырезаем кластеры, которых нет в списке leafs
@@ -20237,8 +19569,8 @@ void Con_CheckResize ()
 		width = 38;
 		con.linewidth = width;
 		con.totallines = CON_TEXTSIZE / con.linewidth;
-		Memset (con.text, ' ', CON_TEXTSIZE);
-		Memset (con.color, 7, CON_TEXTSIZE);
+		memset (con.text, ' ', CON_TEXTSIZE);
+		memset (con.color, 7, CON_TEXTSIZE);
 	}
 	else
 	{
@@ -20256,10 +19588,10 @@ void Con_CheckResize ()
 		if (con.linewidth < numchars)
 			numchars = con.linewidth;
 
-		Memcpy (tbuf, con.text, CON_TEXTSIZE);
-		Memcpy (cbuf, con.color, CON_TEXTSIZE);
-		Memset (con.text, ' ', CON_TEXTSIZE);
-		Memset (con.color, 7, CON_TEXTSIZE);
+		memcpy (tbuf, con.text, CON_TEXTSIZE);
+		memcpy (cbuf, con.color, CON_TEXTSIZE);
+		memset (con.text, ' ', CON_TEXTSIZE);
+		memset (con.color, 7, CON_TEXTSIZE);
 
 		for (i=0 ; i<numlines ; i++)
 		{
@@ -22166,7 +21498,7 @@ void CL_PasteCur_f ()
 			return;
 
 		VectorCopy(curlink->origin, bak);
-		Memcpy(curlink, &link_clipboard, sizeof(llink_t));
+		memcpy(curlink, &link_clipboard, sizeof(llink_t));
 		VectorCopy(bak, curlink->origin);
 	}
 	else
@@ -22178,7 +21510,7 @@ void CL_PasteCur_f ()
 			return;
 
 		VectorCopy(curlight->origin, bak);
-		Memcpy(curlight, &light_clipboard, sizeof(shadowlight_t));
+		memcpy(curlight, &light_clipboard, sizeof(shadowlight_t));
 		VectorCopy(bak, curlight->origin);
 
 // После изменения параметров требуется пересчитать некоторые параметры!
@@ -22302,7 +21634,7 @@ void SV_WritePlayerstateToClient (client_frame_t *from, client_frame_t *to, size
 	ps = &to->ps;
 	if (!from)
 	{
-		Memset (&dummy, 0, sizeof(dummy));
+		memset (&dummy, 0, sizeof(dummy));
 		ops = &dummy;
 	}
 	else
@@ -22656,7 +21988,7 @@ void CL_ParsePlayerstate (frame_t *oldframe, frame_t *newframe)
 	if (oldframe)
 		*state = oldframe->playerstate;
 	else
-		Memset (state, 0, sizeof(*state));
+		memset (state, 0, sizeof(*state));
 
 	flags = MSG_ReadShort (&net_message);
 	if ((flags & PS_EPS) && !old)
@@ -23308,7 +22640,7 @@ void GetSurfaceColor(float *or, float *og, float *ob, trace_t *otrace)
 		}
 	}
 	if (otrace)
-		Memcpy(otrace, &trace, sizeof(trace_t));
+		memcpy(otrace, &trace, sizeof(trace_t));
 }
 
 void DrawQuickSavedShot(void *m)
@@ -23325,8 +22657,6 @@ void DrawQuickSavedShot(void *m)
 	i = menu->generic.localdata[0];
 	if (m_savevalid[i])
 	{
-		// UCyborg: wut?
-//		strcpy(mapfile, va("pics/../%s/quick%i/shot.tga", savdir, i/*m_saveshots[i]*/));
 		strcpy(mapfile, va("%s/quick%i/shot.tga", savdir, i/*m_saveshots[i]*/));
 		R_FreePic(mapfile);
 		FS_ClearFileCache(mapfile);
@@ -23353,8 +22683,6 @@ void DrawSavedShot(void *m)
 	{
 		if (i)
 		{
-			// UCyborg: wut?
-//			strcpy(mapfile, va("pics/../%s/save%i/shot.tga", savdir, i/*m_saveshots[i]*/));
 			strcpy(mapfile, va("%s/save%i/shot.tga", savdir, i/*m_saveshots[i]*/));
 			R_FreePic(mapfile);
 			FS_ClearFileCache(mapfile);
@@ -23633,9 +22961,9 @@ void R_Draw3DHud()
 
 	drawed = 0;
 	currentshadowlight = &m_light;
-	Memset( &refdef, 0, sizeof( refdef ) );
-	Memset( &entity, 0, sizeof( entity ) );
-	Memset(currentshadowlight, 0, sizeof(shadowlight_t));
+	memset( &refdef, 0, sizeof( refdef ) );
+	memset( &entity, 0, sizeof( entity ) );
+	memset(currentshadowlight, 0, sizeof(shadowlight_t));
 
 	refdef.viewangles[0] = 23;
 	refdef.fov_x = 45;
@@ -24140,7 +23468,7 @@ void SCR_Draw2D()
 			length = FS_LoadFile (name, (void **)&buffer);
 			if (buffer && length < sizeof(editor_layoutstring) && length > 0)
 			{
-				Memcpy(editor_layoutstring, buffer, length);
+				memcpy(editor_layoutstring, buffer, length);
 				editor_layoutstring[length] = 0;
 				Z_Free(buffer);
 			}
@@ -24341,11 +23669,11 @@ void CL_ResetEditor()
 	curfog = NULL;
 	curtexinfo = NULL;
 	curtri = curmesh = curbrushnum = 0;
-	Memset(&light_clipboard, 0, sizeof(light_clipboard));
-	Memset(&link_clipboard, 0, sizeof(link_clipboard));
-	Memset(&emit_clipboard, 0, sizeof(emit_clipboard));
-	Memset(&decal_clipboard, 0, sizeof(decal_clipboard));
-	Memset(&model_clipboard, 0, sizeof(model_clipboard));
+	memset(&light_clipboard, 0, sizeof(light_clipboard));
+	memset(&link_clipboard, 0, sizeof(link_clipboard));
+	memset(&emit_clipboard, 0, sizeof(emit_clipboard));
+	memset(&decal_clipboard, 0, sizeof(decal_clipboard));
+	memset(&model_clipboard, 0, sizeof(model_clipboard));
 	Cl_UpdateEditorCvars(ED_LIGHT | ED_EMIT | ED_DECAL | ED_FOG | ED_MODEL | ED_BRUSH | ED_AMBIENT);
 }
 
@@ -25293,7 +24621,7 @@ void CL_Stop_f ()
 
 void NetadrToSockadr (netadr_t *a, struct sockaddr *s)
 {
-	Memset (s, 0, sizeof(*s));
+	memset (s, 0, sizeof(*s));
 
 	if (a->type == NA_BROADCAST)
 	{
@@ -25396,7 +24724,7 @@ bool	NET_StringToSockaddr (char *s, struct sockaddr *sadr)
 	char	*colon;
 	char	copy[128];
 
-	Memset (sadr, 0, sizeof(*sadr));
+	memset (sadr, 0, sizeof(*sadr));
 
 	((struct sockaddr_in *)sadr)->sin_family = AF_INET;
 	((struct sockaddr_in *)sadr)->sin_port = 0;
@@ -25442,7 +24770,7 @@ bool	NET_StringToAdr (char *s, netadr_t *a)
 
 	if (!strcmp (s, "localhost"))
 	{
-		Memset (a, 0, sizeof(*a));
+		memset (a, 0, sizeof(*a));
 		a->type = NA_LOOPBACK;
 		return true;
 	}
@@ -26189,7 +25517,7 @@ void MSG_ReadDeltaUsercmd (sizebuf_t *msg_read, usercmd_t *from, usercmd_t *move
 {
 	int bits;
 
-	Memcpy (move, from, sizeof(*move));
+	memcpy (move, from, sizeof(*move));
 
 	bits = MSG_ReadByte (msg_read);
 
@@ -26234,7 +25562,7 @@ void NET_SendLoopPacket (netsrc_t sock, int length, void *data, netadr_t to)
 	i = loop->send & (MAX_LOOPBACK-1);
 	loop->send++;
 
-	Memcpy (loop->msgs[i].data, data, length);
+	memcpy (loop->msgs[i].data, data, length);
 	loop->msgs[i].datalen = length;
 }
 
@@ -26255,9 +25583,9 @@ bool	NET_GetLoopPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_messag
 	i = loop->get & (MAX_LOOPBACK-1);
 	loop->get++;
 
-	Memcpy (net_message->data, loop->msgs[i].data, loop->msgs[i].datalen);
+	memcpy (net_message->data, loop->msgs[i].data, loop->msgs[i].datalen);
 	net_message->cursize = loop->msgs[i].datalen;
-	Memset (net_from, 0, sizeof(*net_from));
+	memset (net_from, 0, sizeof(*net_from));
 	net_from->type = NA_LOOPBACK;
 	return true;
 
@@ -26373,7 +25701,7 @@ bool NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 			if (b0==(ret & 0xff) && b1==((ret>>8) & 0xff))
 			{
 				int unp = ZLibDecompress (&compressed_frame[ZHEADERLEN], ret - ZHEADERLEN, buff_out, ZBUFFLEN, -15);
-				Memcpy(net_message->data, buff_out, unp);
+				memcpy(net_message->data, buff_out, unp);
 				saved___ -= unp;
 				if (net_traffic->value)
 					Com_Printf("RECEIVED: %i <- %i (saved %i bytes %i%%)\n", unp, ret, -saved___, -100*saved___/unp);
@@ -26381,7 +25709,7 @@ bool NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 			}
 			else
 			{
-				Memcpy(net_message->data, compressed_frame, ret);
+				memcpy(net_message->data, compressed_frame, ret);
 				if (net_traffic->value)
 					Com_Printf("RECEIVED: %i\n", ret);
 			}
@@ -26591,7 +25919,7 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 
 	if (!chan->reliable_length && chan->message.cursize)
 	{
-		Memcpy (chan->reliable_buf, chan->message_buf, chan->message.cursize);
+		memcpy (chan->reliable_buf, chan->message_buf, chan->message.cursize);
 		chan->reliable_length = chan->message.cursize;
 		chan->message.cursize = 0;
 		chan->reliable_sequence ^= 1;
@@ -26930,7 +26258,7 @@ void R_SpawnDecalBSP (decal_t *decal, image_t *texture, dtype_t type, bool shot,
 
 	dec = free_decals;
 	free_decals = dec->next;
-	Memcpy(dec, decal, sizeof(decal_t));
+	memcpy(dec, decal, sizeof(decal_t));
 	dec->next = active_decals;
 	active_decals = dec;
 
@@ -27184,7 +26512,7 @@ void R_SpawnDecalBModel (decal_t *decal, image_t *texture, dtype_t type, bool sh
 
 	dec = free_decals;
 	free_decals = dec->next;
-	Memcpy(dec, decal, sizeof(decal_t));
+	memcpy(dec, decal, sizeof(decal_t));
 	dec->next = active_decals;
 	active_decals = dec;
 
@@ -27331,7 +26659,7 @@ void R_SpawnDecal(vec3_t center, vec3_t normal, image_t *texture, float minsize,
 ///	dec.type = dtype;
 	dec.angle = RandomMinMax(minangle, maxangle);
 	dec.model_id = 0;
-	Memcpy(dec.decalTextureName, texture->name, MAX_QPATH);
+	memcpy(dec.decalTextureName, texture->name, MAX_QPATH);
 	dec.decalType = dtype;
 	dec.shot = shot;
 	dec.size = dec_radius;
@@ -27721,7 +27049,7 @@ again:
 	{
 er:		if (crash)
 			Com_Error (ERR_DROP, "Mod_ForName: %s not found", mod->name);
-		Memset (mod->name, 0, sizeof(mod->name));
+		memset (mod->name, 0, sizeof(mod->name));
 		return NULL;
 	}
 	if (modfilelen <= 0)
@@ -27903,14 +27231,14 @@ void CL_ClearParticles ()
 
 void CL_ClearDlights ()
 {
-	Memset (cl_dlights, 0, sizeof(cl_dlights));
+	memset (cl_dlights, 0, sizeof(cl_dlights));
 }
 
 
 void CL_ClearLightStyles ()
 {
-	Memset (sv_lightstyle, 0, sizeof(sv_lightstyle));
-	Memset (cl_lightstyle, 0, sizeof(cl_lightstyle));
+	memset (sv_lightstyle, 0, sizeof(sv_lightstyle));
+	memset (cl_lightstyle, 0, sizeof(cl_lightstyle));
 	lastofs = -1;
 }
 
@@ -27929,7 +27257,7 @@ void CL_InitDecals()
 {
 	int i;
 
-	Memset (decals, 0, sizeof(decals));
+	memset (decals, 0, sizeof(decals));
 	free_decals = &decals[0];
 	active_decals = NULL;
 
@@ -27942,12 +27270,12 @@ void CL_InitDecals()
 
 void CL_ClearTEnts ()
 {
-	Memset (cl_beams, 0, sizeof(cl_beams));
-	Memset (cl_explosions, 0, sizeof(cl_explosions));
-	Memset (cl_lasers, 0, sizeof(cl_lasers));
+	memset (cl_beams, 0, sizeof(cl_beams));
+	memset (cl_explosions, 0, sizeof(cl_explosions));
+	memset (cl_lasers, 0, sizeof(cl_lasers));
 //ROGUE
-	Memset (cl_playerbeams, 0, sizeof(cl_playerbeams));
-	Memset (cl_sustains, 0, sizeof(cl_sustains));
+	memset (cl_playerbeams, 0, sizeof(cl_playerbeams));
+	memset (cl_sustains, 0, sizeof(cl_sustains));
 //ROGUE
 }
 
@@ -27958,8 +27286,8 @@ void CL_ClearState ()
 	CL_ClearTEnts ();
 
 // wipe the entire cl structure
-	Memset (&cl, 0, sizeof(cl));
-	Memset (&cl_entities, 0, sizeof(cl_entities));
+	memset (&cl, 0, sizeof(cl));
+	memset (&cl_entities, 0, sizeof(cl_entities));
 
 	SZ_Clear (&cls.netchan.message);
 }
@@ -28110,7 +27438,7 @@ void SV_Shutdown (char *finalmsg, bool reconnect)
 	// free current level
 	if (sv.demofile)
 		fclose (sv.demofile);
-	Memset (&sv, 0, sizeof(sv));
+	memset (&sv, 0, sizeof(sv));
 	Com_SetServerState (sv.state);
 
 	// free server static data
@@ -28120,7 +27448,7 @@ void SV_Shutdown (char *finalmsg, bool reconnect)
 		Z_Free (svs.client_entities);
 	if (svs.demofile)
 		fclose (svs.demofile);
-	Memset (&svs, 0, sizeof(svs));
+	memset (&svs, 0, sizeof(svs));
 }
 
 
@@ -28202,7 +27530,7 @@ void PlayerConfig_ScanDirectories()
 	if ( !ndirs )
 		return;	/// false;
 	dirnames = (char **) malloc( sizeof( char * ) * ( ndirs + 1 ) );
-	Memset( dirnames, 0, sizeof( char * ) * ( ndirs + 1 ) );
+	memset( dirnames, 0, sizeof( char * ) * ( ndirs + 1 ) );
 
 	j = 0;
 	// copy 1st list
@@ -28299,7 +27627,7 @@ void PlayerConfig_ScanDirectories()
 			continue;
 		}
 		names = (char **) malloc( sizeof( char * ) * ( nfiles + 1 ) );
-		Memset( names, 0, sizeof( char * ) * ( nfiles + 1 ) );
+		memset( names, 0, sizeof( char * ) * ( nfiles + 1 ) );
 
 		j = 0;
 		char *dot;
@@ -28407,7 +27735,7 @@ void PlayerConfig_ScanDirectories()
 		}
 
 		skinnames = (char **) malloc( sizeof( char * ) * ( nskins + 1 ) );
-		Memset( skinnames, 0, sizeof( char * ) * ( nskins + 1 ) );
+		memset( skinnames, 0, sizeof( char * ) * ( nskins + 1 ) );
 
 		// copy the valid skins
 		for ( s = 0, k = 0; k < nfiles; k++ )
@@ -28489,7 +27817,7 @@ void PlayerConfig_ScanDirectories()
 					char	**skinnames;
 					nskins = s_pmi[j].nskins + s_pmi[i].nskins;
 					skinnames = (char **) malloc( sizeof( char * ) * ( nskins + 1 ) );
-					Memset( skinnames, 0, sizeof( char * ) * ( nskins + 1 ) );
+					memset( skinnames, 0, sizeof( char * ) * ( nskins + 1 ) );
 					for (l=0; l<s_pmi[j].nskins; l++)
 						skinnames[l] = s_pmi[j].skindisplaynames[l];
 					for (l=0; l<s_pmi[i].nskins; l++)
@@ -28529,7 +27857,7 @@ void PlayerConfig_ScanDirectories()
 				}
 			if (i == s_numplayermodels)
 				break;
-			Memcpy(free_pmi, pmi, sizeof(s_pmi[0]));
+			memcpy(free_pmi, pmi, sizeof(s_pmi[0]));
 			pmi->nskins = 0;
 		}
 	}
@@ -28551,7 +27879,7 @@ void PlayerConfig_ScanDirectories()
 					free(s_pmi[i].skindisplaynames);
 					// move down all above s_pmi
 					for (j = i; j < s_numplayermodels-1; j++)
-						Memcpy(&s_pmi[j], &s_pmi[j + 1], sizeof(s_pmi[0]));
+						memcpy(&s_pmi[j], &s_pmi[j + 1], sizeof(s_pmi[0]));
 				}
 				s_numplayermodels--;
 			}
@@ -29221,7 +28549,7 @@ void Cbuf_InsertText (char *text)
 	if (templen)
 	{
 		temp = (char*) Z_Malloc (templen, true);
-		Memcpy (temp, cmd_text.data, templen);
+		memcpy (temp, cmd_text.data, templen);
 		SZ_Clear (&cmd_text);
 	}
 	else
@@ -30616,7 +29944,7 @@ void Cbuf_Execute ()
 				break;
 		}
 
-		Memcpy (line, text, i);
+		memcpy (line, text, i);
 		line[i] = 0;
 
 // delete the text from the command buffer and move remaining commands down
@@ -30761,7 +30089,7 @@ char **FS_ListFiles( char *findname, int *numfiles, unsigned musthave, unsigned 
 	*numfiles = nfiles;
 
 	list = (char**) malloc( sizeof( char * ) * nfiles );
-	Memset( list, 0, sizeof( char * ) * nfiles );
+	memset( list, 0, sizeof( char * ) * nfiles );
 
 	s = Sys_FindFirst( findname, musthave, canthave );
 	nfiles = 0;
@@ -30988,7 +30316,7 @@ void	FS_LoadPureList(char *dir, int idx)
 	}
 
 	paknames_[idx] = (char **) Z_Malloc( sizeof( char * ) * ( numpaks_[idx] + 1 ), true );
-///	Memset( paknames_[idx], 0, sizeof( char * ) * ( numpaks_[idx] + 1 ) );
+///	memset( paknames_[idx], 0, sizeof( char * ) * ( numpaks_[idx] + 1 ) );
 
 	s = buffer;
 
@@ -31031,7 +30359,7 @@ void	FS_LoadPureLists()
 	// Объединим списки
 	int i, j;
 	paknames = (char **) Z_Malloc( sizeof( char * ) * ( numpaks_[0] + numpaks_[1] + 1 ), true );
-///	Memset( paknames, 0, sizeof( char * ) * ( numpaks_[0] + numpaks_[1] + 1 ) );
+///	memset( paknames, 0, sizeof( char * ) * ( numpaks_[0] + numpaks_[1] + 1 ) );
 	for (j=0; j<2; j++)
 		for ( i = 0; i < numpaks_[j]; i++ )
 		{
@@ -31089,7 +30417,7 @@ void	FS_CutNonPures()
 void FS_ResetFilesystem_f ()
 {
 	fs_cache_number = 0;
-	Memset(fs_cache, 0, sizeof(fs_cache));
+	memset(fs_cache, 0, sizeof(fs_cache));
 }
 
 void FS_InitFilesystem ()
@@ -31198,32 +30526,9 @@ next:	Cbuf_AddText (va("set %s %s\n", COM_Argv(i+1), COM_Argv(i+2)));
 }
 
 
-/*
-=============
-Com_Quit
-
-Both client and server can use this, and it will
-do the apropriate things.
-=============
-*/
-void Com_Quit ()
-{
-	SV_Shutdown ("Server quit\n", false);
-	CL_Shutdown ();
-
-	if (logfile)
-	{
-		fclose (logfile);
-		logfile = NULL;
-	}
-
-	NET_Shutdown ();
-	Sys_Quit ();
-}
-
-
 int		ccom_argc;
 char	**ccom_argv;
+
 
 /*
 ================
@@ -31276,284 +30581,6 @@ void Q_strncatz (char *dst, const char *src, int dstSize)
 
 		*dst = 0;
 	}
-}
-
-
-/*
-=================
-Sys_DetectCPU
-=================
-*/
-bool Sys_DetectCPU(char *cpuString, int maxSize)
-{
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-
-	char				vendor[16];
-	int					stdBits, features, extFeatures;
-	int					family, model;
-	unsigned __int64	start, end, counter, stop, frequency;
-	unsigned			speed;
-	bool				hasMMX, hasMMXExt, has3DNow, has3DNowExt, hasSSE, hasSSE2;
-
-	// Check if CPUID instruction is supported
-	__try
-	{
-		__asm
-		{
-			xor eax, eax
-			cpuid
-		}
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		return false;
-	}
-
-	// Get CPU info
-	__asm
-	{
-		; // Get vendor identifier
-		sub eax, eax
-			cpuid
-			mov dword ptr[vendor + 0], ebx
-			mov dword ptr[vendor + 4], edx
-			mov dword ptr[vendor + 8], ecx
-			mov dword ptr[vendor + 12], 0
-
-			; // Get standard bits and features
-		mov eax, 1
-			cpuid
-			mov stdBits, eax
-			mov features, edx
-
-			; // Check if extended functions are present
-		mov extFeatures, 0
-			mov eax, 80000000h
-			cpuid
-			cmp eax, 80000000h
-			jbe NoExtFunction
-
-			; // Get extended features
-		mov eax, 80000001h
-			cpuid
-			mov extFeatures, edx
-
-			NoExtFunction :
-	}
-
-	// Get CPU name
-	family = (stdBits >> 8) & 15;
-	model = (stdBits >> 4) & 15;
-
-	if (!Q_strcasecmp(vendor, "AuthenticAMD"))
-	{
-		Q_strncpyz(cpuString, "AMD", maxSize);
-
-		switch (family)
-		{
-		case 5:
-			switch (model)
-			{
-			case 0:
-			case 1:
-			case 2:
-			case 3:
-				Q_strncatz(cpuString, " K5", maxSize);
-				break;
-			case 6:
-			case 7:
-				Q_strncatz(cpuString, " K6", maxSize);
-				break;
-			case 8:
-				Q_strncatz(cpuString, " K6-2", maxSize);
-				break;
-			case 9:
-			case 10:
-			case 11:
-			case 12:
-			case 13:
-			case 14:
-			case 15:
-				Q_strncatz(cpuString, " K6-III", maxSize);
-				break;
-			}
-			break;
-		case 6:
-			switch (model)
-			{
-			case 1:
-				Q_strncatz(cpuString, " Athlon (0.25 core)", maxSize);
-				break;
-			case 2:
-				Q_strncatz(cpuString, " Athlon (0.18 core)", maxSize);
-				break;
-			case 3:
-				Q_strncatz(cpuString, " Duron Spitfire", maxSize);
-				break;
-			case 4:
-				Q_strncatz(cpuString, " Athlon Thunderbird", maxSize);
-				break;
-			case 6:
-				Q_strncatz(cpuString, " Athlon Palomino", maxSize);
-				break;
-			case 7:
-				Q_strncatz(cpuString, " Duron Morgan", maxSize);
-				break;
-			case 8:
-				Q_strncatz(cpuString, " Athlon Thoroughbred", maxSize);
-				break;
-			case 10:
-				Q_strncatz(cpuString, " Athlon Barton", maxSize);
-				break;
-			}
-			break;
-		}
-	}
-	else if (!Q_strcasecmp(vendor, "GenuineIntel"))
-	{
-		Q_strncpyz(cpuString, "Intel", maxSize);
-
-		switch (family)
-		{
-		case 5:
-			switch (model)
-			{
-			case 0:
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-			case 7:
-			case 8:
-				Q_strncatz(cpuString, " Pentium", maxSize);
-				break;
-			}
-			break;
-		case 6:
-			switch (model)
-			{
-			case 0:
-			case 1:
-				Q_strncatz(cpuString, " Pentium Pro", maxSize);
-				break;
-			case 3:
-			case 5:		// Actual differentiation depends on cache settings
-				Q_strncatz(cpuString, " Pentium II", maxSize);
-				break;
-			case 6:
-				Q_strncatz(cpuString, " Celeron", maxSize);
-				break;
-			case 7:
-			case 8:
-			case 9:
-			case 10:
-			case 11:	// Actual differentiation depends on cache settings
-				Q_strncatz(cpuString, " Pentium III", maxSize);
-				break;
-			}
-			break;
-		case 15:
-			Q_strncatz(cpuString, " Pentium 4", maxSize);
-			break;
-		}
-	}
-	else
-		return false;
-
-	// Check if RDTSC instruction is supported
-	if ((features >> 4) & 1)
-	{
-		// Measure CPU speed
-		QueryPerformanceFrequency((LARGE_INTEGER *)&frequency);
-
-		__asm {
-			rdtsc
-			mov dword ptr[start + 0], eax
-			mov dword ptr[start + 4], edx
-		}
-
-		QueryPerformanceCounter((LARGE_INTEGER *)&stop);
-		stop += frequency;
-
-		do
-		{
-			QueryPerformanceCounter((LARGE_INTEGER *)&counter);
-		} while (counter < stop);
-
-		__asm
-		{
-			rdtsc
-			mov dword ptr[end + 0], eax
-			mov dword ptr[end + 4], edx
-		}
-
-		speed = (unsigned)((end - start) / 1000000);
-
-		Q_strncatz(cpuString, va(" %u MHz", speed), maxSize);
-	}
-
-	// Get extended instruction sets supported
-	hasMMX = (features >> 23) & 1;
-	hasMMXExt = (extFeatures >> 22) & 1;
-	has3DNow = (extFeatures >> 31) & 1;
-	has3DNowExt = (extFeatures >> 30) & 1;
-	hasSSE = (features >> 25) & 1;
-	hasSSE2 = (features >> 26) & 1;
-
-	cpu_mmx = cpu_mmxe = cpu_3dnow = cpu_3dnowe = cpu_sse = cpu_sse2 = false;
-
-	if (hasMMX || has3DNow || hasSSE)
-	{
-		Q_strncatz(cpuString, " w/", maxSize);
-
-		if (hasMMX)
-		{
-			Q_strncatz(cpuString, " MMX", maxSize);
-			cpu_mmx = true;
-			if (hasMMXExt)
-			{
-				Q_strncatz(cpuString, "+", maxSize);
-				cpu_mmxe = true;
-			}
-		}
-		if (has3DNow)
-		{
-			Q_strncatz(cpuString, " 3DNow!", maxSize);
-			cpu_3dnow = true;
-			if (has3DNowExt)
-			{
-				Q_strncatz(cpuString, "+", maxSize);
-				cpu_3dnowe = true;
-			}
-		}
-		if (hasSSE)
-		{
-			Q_strncatz(cpuString, " SSE", maxSize);
-			cpu_sse = true;
-			if (hasSSE2)
-			{
-				Q_strncatz(cpuString, "2", maxSize);
-				cpu_sse2 = true;
-			}
-		}
-	}
-
-	return true;
-
-#endif
-#else
-
-	cpu_mmx  = SDL_HasMMX();
-	cpu_3dnow = SDL_Has3DNow();
-	cpu_sse = SDL_HasSSE();
-	cpu_sse2 = SDL_HasSSE2();
-
-	Q_strncpyz(cpuString, "Generic", maxSize);
-
-	return true;
-
-#endif
 }
 
 
@@ -31657,22 +30684,8 @@ void Sys_Init ()
 	if (SDL_InitSubSystem(SDL_INIT_TIMER) < 0)
 		Sys_Error("SDL_InitSubSystem(SDL_INIT_TIMER) ^1failed^7: %s\n", SDL_GetError());
 
+	// This doesn't display, console buffer too small?
 	Com_Printf("*** Berserker@Quake2 ***\nBuilt: %s %s\nBinary code: x86 (%s)\n\n", __DATE__, __TIME__, BUILDSTRING);
-
-	NumberOfProcessors = SDL_GetCPUCount();
-
-	// Get RAM
-	Com_Printf("\nTotal physical RAM: %d MB\n", SDL_GetSystemRAM());
-
-	// Detect CPU
-	Com_Printf("CPU: ");
-	if (Sys_DetectCPU(str, sizeof(str)))
-		sys_cpu = Cvar_Get("sys_cpu", str, CVAR_NOSET);
-	else
-		sys_cpu = Cvar_Get("sys_cpu", "Unknown", CVAR_NOSET);
-	Com_Printf("%s\n", sys_cpu->string);
-	if (NumberOfProcessors>1)
-		Com_Printf("Found %i CPUs\n\n", NumberOfProcessors);
 
 	// Get user name
 	sys_username = Cvar_Get("sys_username", Sys_GetCurrentUser(), CVAR_NOSET);
@@ -31728,6 +30741,30 @@ void Netchan_Init ()
 	// pick a port value that should be nice and random
 	port = (SHORT)rand();
 	qport = Cvar_Get ("qport", va("%i", port), CVAR_NOSET);
+}
+
+
+/*
+=============
+Com_Quit
+
+Both client and server can use this, and it will
+do the apropriate things.
+=============
+*/
+void Com_Quit()
+{
+	SV_Shutdown("Server quit\n", false);
+	CL_Shutdown();
+
+	if (logfile)
+	{
+		fclose(logfile);
+		logfile = NULL;
+	}
+
+	NET_Shutdown();
+	Sys_Quit();
 }
 
 
@@ -31958,7 +30995,7 @@ void Info_Print (char *s)
 		l = o - key;
 		if (l < 20)
 		{
-			Memset (o, ' ', 20-l);
+			memset (o, ' ', 20-l);
 			key[20] = 0;
 		}
 		else
@@ -32430,8 +31467,8 @@ int Create_Mapsstrings (int mask)
 	bool			exit = false;
 
 	// init
-	Memset(m_maps, 0, sizeof(char)*MAX_MAPS*(MAX_MAP_NAMELEN+1));
-	Memset(m_mapsvalid, 0, sizeof(bool)*MAX_MAPS);
+	memset(m_maps, 0, sizeof(char)*MAX_MAPS*(MAX_MAP_NAMELEN+1));
+	memset(m_mapsvalid, 0, sizeof(bool)*MAX_MAPS);
 
 	str_map = ".bsp";
 	str_map_ = "*.bsp";
@@ -32457,7 +31494,7 @@ int Create_Mapsstrings (int mask)
 							{
 								if(!b_stricmp(ZipCache[i].pak_name, pak->filename))
 								{
-									Memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
+									memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
 									goto clc;
 								}
 							}
@@ -32474,7 +31511,7 @@ int Create_Mapsstrings (int mask)
 					strcpy(&ZipCache[slot].pak_name[0], pak->filename);	// Если не нашли zip в кэше, откроем его...
 					if (!PackFileOpen (&ZipCache[slot]))
 						Com_Error(ERR_FATAL, "Error opening pk2-file: %s", pak->filename);
-					Memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
+					memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
 					goto clc2;
 clc:				slot = i;
 clc2:				for(i=0; i<pf.gi.number_entry; i++)
@@ -32482,7 +31519,7 @@ clc2:				for(i=0; i<pf.gi.number_entry; i++)
 						if(pf.fi[i].size)
 						{
 							char	nam[256];
-							Memcpy(nam, pf.fi[i].name, 256);
+							memcpy(nam, pf.fi[i].name, 256);
 							if(!Q_strncasecmp(nam, "maps/", 5))
 							{
 								if(!Q_strcasecmp(nam+strlen(nam)-4, str_map))
@@ -32504,7 +31541,7 @@ clc2:				for(i=0; i<pf.gi.number_entry; i++)
 					for (i=0 ; i<pak->numfiles ; i++)
 					{
 						char	nam[256];
-						Memcpy(nam, pak->files[i].name, 256);
+						memcpy(nam, pak->files[i].name, 256);
 						if (!Q_strncasecmp(nam, "maps/", 5))
 						{
 							if(!Q_strcasecmp(nam+strlen(nam)-4, str_map))
@@ -32990,7 +32027,7 @@ void CL_ReadClientFile (bool temp)
 	// load decals
 	while (1)
 	{
-		Memset(&dec, 0, sizeof(dec));
+		memset(&dec, 0, sizeof(dec));
 		FS_Read (&dec.size, sizeof(dec.size), f);
 		if (dec.size == 0x7F7F7F7F)
 			break;
@@ -33026,7 +32063,7 @@ void CL_ReadClientFile (bool temp)
 	// load particles
 	while (1)
 	{
-		Memset(&p, 0, sizeof(p));
+		memset(&p, 0, sizeof(p));
 		FS_Read (&p.size, sizeof(p.size), f);
 		if (p.size == 0x7F7F7F7F)
 			break;
@@ -33080,9 +32117,9 @@ void CL_ReadClientFile (bool temp)
 	// load client entities
 	while (1)
 	{
-		Memset(&cent, 0, sizeof(cent));
-		Memset(name, 0, sizeof(cent.model->name)+1);
-		Memset(skinname, 0, sizeof(cent.skin->name)+1);
+		memset(&cent, 0, sizeof(cent));
+		memset(name, 0, sizeof(cent.model->name)+1);
+		memset(skinname, 0, sizeof(cent.skin->name)+1);
 		FS_Read (name, 4, f);
 		if (name[0] == 0x7F && name[1] == 0x7F && name[2] == 0x7F && name[3] == 0x7F)
 			break;
@@ -33181,7 +32218,7 @@ void SV_WriteServerFile (bool autosave)
 		return;
 	}
 	// write the comment field
-	Memset (comment, 0, sizeof(comment));
+	memset (comment, 0, sizeof(comment));
 
 	if (!autosave)
 	{
@@ -33232,8 +32269,8 @@ void SV_WriteServerFile (bool autosave)
 			Com_Printf ("^1Cvar too long: %s = %s\n", var->name, var->string);
 			continue;
 		}
-		Memset (name, 0, sizeof(name));
-		Memset (string, 0, sizeof(string));
+		memset (name, 0, sizeof(name));
+		memset (string, 0, sizeof(string));
 		strcpy (name, var->name);
 		strcpy (string, var->string);
 		fwrite (name, 1, sizeof(name), f);
@@ -33557,7 +32594,7 @@ byte	phsrow[MAX_MAP_LEAFS/8];
 byte	*CM_ClusterPVS (int cluster)
 {
 	if (cluster == -1)
-		Memset (pvsrow, 0, (numclusters+7)>>3);
+		memset (pvsrow, 0, (numclusters+7)>>3);
 	else
 		CM_DecompressVis (map_visibility + map_vis->bitofs[cluster][DVIS_PVS], pvsrow);
 	return pvsrow;
@@ -33566,7 +32603,7 @@ byte	*CM_ClusterPVS (int cluster)
 byte	*CM_ClusterPHS (int cluster)
 {
 	if (cluster == -1)
-		Memset (phsrow, 0, (numclusters+7)>>3);
+		memset (phsrow, 0, (numclusters+7)>>3);
 	else
 		CM_DecompressVis (map_visibility + map_vis->bitofs[cluster][DVIS_PHS], phsrow);
 	return phsrow;
@@ -37750,242 +36787,6 @@ BoxOnPlaneSide
 Returns 1, 2, or 1 + 2
 ==================
 */
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-#pragma warning( disable: 4035 )
-
-NAKED int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
-{
-	static int bops_initialized;
-	static int Ljmptab[8];
-
-	__asm {
-
-		push ebx
-
-		cmp bops_initialized, 1
-		je  initialized
-		mov bops_initialized, 1
-
-		mov Ljmptab[0*4], offset Lcase0
-		mov Ljmptab[1*4], offset Lcase1
-		mov Ljmptab[2*4], offset Lcase2
-		mov Ljmptab[3*4], offset Lcase3
-		mov Ljmptab[4*4], offset Lcase4
-		mov Ljmptab[5*4], offset Lcase5
-		mov Ljmptab[6*4], offset Lcase6
-		mov Ljmptab[7*4], offset Lcase7
-
-initialized:
-
-		mov edx,ds:dword ptr[4+12+esp]
-		mov ecx,ds:dword ptr[4+4+esp]
-		xor eax,eax
-		mov ebx,ds:dword ptr[4+8+esp]
-		mov al,ds:byte ptr[17+edx]
-		cmp al,8
-		jge Lerror
-		fld ds:dword ptr[0+edx]
-		fld st(0)
-		jmp dword ptr[Ljmptab+eax*4]
-Lcase0:
-		fmul ds:dword ptr[ebx]
-		fld ds:dword ptr[0+4+edx]
-		fxch st(2)
-		fmul ds:dword ptr[ecx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[4+ebx]
-		fld ds:dword ptr[0+8+edx]
-		fxch st(2)
-		fmul ds:dword ptr[4+ecx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[8+ebx]
-		fxch st(5)
-		faddp st(3),st(0)
-		fmul ds:dword ptr[8+ecx]
-		fxch st(1)
-		faddp st(3),st(0)
-		fxch st(3)
-		faddp st(2),st(0)
-		jmp LSetSides
-Lcase1:
-		fmul ds:dword ptr[ecx]
-		fld ds:dword ptr[0+4+edx]
-		fxch st(2)
-		fmul ds:dword ptr[ebx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[4+ebx]
-		fld ds:dword ptr[0+8+edx]
-		fxch st(2)
-		fmul ds:dword ptr[4+ecx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[8+ebx]
-		fxch st(5)
-		faddp st(3),st(0)
-		fmul ds:dword ptr[8+ecx]
-		fxch st(1)
-		faddp st(3),st(0)
-		fxch st(3)
-		faddp st(2),st(0)
-		jmp LSetSides
-Lcase2:
-		fmul ds:dword ptr[ebx]
-		fld ds:dword ptr[0+4+edx]
-		fxch st(2)
-		fmul ds:dword ptr[ecx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[4+ecx]
-		fld ds:dword ptr[0+8+edx]
-		fxch st(2)
-		fmul ds:dword ptr[4+ebx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[8+ebx]
-		fxch st(5)
-		faddp st(3),st(0)
-		fmul ds:dword ptr[8+ecx]
-		fxch st(1)
-		faddp st(3),st(0)
-		fxch st(3)
-		faddp st(2),st(0)
-		jmp LSetSides
-Lcase3:
-		fmul ds:dword ptr[ecx]
-		fld ds:dword ptr[0+4+edx]
-		fxch st(2)
-		fmul ds:dword ptr[ebx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[4+ecx]
-		fld ds:dword ptr[0+8+edx]
-		fxch st(2)
-		fmul ds:dword ptr[4+ebx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[8+ebx]
-		fxch st(5)
-		faddp st(3),st(0)
-		fmul ds:dword ptr[8+ecx]
-		fxch st(1)
-		faddp st(3),st(0)
-		fxch st(3)
-		faddp st(2),st(0)
-		jmp LSetSides
-Lcase4:
-		fmul ds:dword ptr[ebx]
-		fld ds:dword ptr[0+4+edx]
-		fxch st(2)
-		fmul ds:dword ptr[ecx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[4+ebx]
-		fld ds:dword ptr[0+8+edx]
-		fxch st(2)
-		fmul ds:dword ptr[4+ecx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[8+ecx]
-		fxch st(5)
-		faddp st(3),st(0)
-		fmul ds:dword ptr[8+ebx]
-		fxch st(1)
-		faddp st(3),st(0)
-		fxch st(3)
-		faddp st(2),st(0)
-		jmp LSetSides
-Lcase5:
-		fmul ds:dword ptr[ecx]
-		fld ds:dword ptr[0+4+edx]
-		fxch st(2)
-		fmul ds:dword ptr[ebx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[4+ebx]
-		fld ds:dword ptr[0+8+edx]
-		fxch st(2)
-		fmul ds:dword ptr[4+ecx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[8+ecx]
-		fxch st(5)
-		faddp st(3),st(0)
-		fmul ds:dword ptr[8+ebx]
-		fxch st(1)
-		faddp st(3),st(0)
-		fxch st(3)
-		faddp st(2),st(0)
-		jmp LSetSides
-Lcase6:
-		fmul ds:dword ptr[ebx]
-		fld ds:dword ptr[0+4+edx]
-		fxch st(2)
-		fmul ds:dword ptr[ecx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[4+ecx]
-		fld ds:dword ptr[0+8+edx]
-		fxch st(2)
-		fmul ds:dword ptr[4+ebx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[8+ecx]
-		fxch st(5)
-		faddp st(3),st(0)
-		fmul ds:dword ptr[8+ebx]
-		fxch st(1)
-		faddp st(3),st(0)
-		fxch st(3)
-		faddp st(2),st(0)
-		jmp LSetSides
-Lcase7:
-		fmul ds:dword ptr[ecx]
-		fld ds:dword ptr[0+4+edx]
-		fxch st(2)
-		fmul ds:dword ptr[ebx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[4+ecx]
-		fld ds:dword ptr[0+8+edx]
-		fxch st(2)
-		fmul ds:dword ptr[4+ebx]
-		fxch st(2)
-		fld st(0)
-		fmul ds:dword ptr[8+ecx]
-		fxch st(5)
-		faddp st(3),st(0)
-		fmul ds:dword ptr[8+ebx]
-		fxch st(1)
-		faddp st(3),st(0)
-		fxch st(3)
-		faddp st(2),st(0)
-LSetSides:
-		faddp st(2),st(0)
-		fcomp ds:dword ptr[12+edx]
-		xor ecx,ecx
-		fnstsw ax
-		fcomp ds:dword ptr[12+edx]
-		and ah,1
-		xor ah,1
-		add cl,ah
-		fnstsw ax
-		and ah,1
-		add ah,ah
-		add cl,ah
-		pop ebx
-		mov eax,ecx
-		ret
-Lerror:
-		int 3
-	}
-}
-#pragma warning( default: 4035 )
-#endif
-#else
 int BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 {
 	float	dist[2];
@@ -38021,7 +36822,6 @@ int BoxOnPlaneSide(vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 
 	return sides;
 }
-#endif
 
 
 /*
@@ -38677,7 +37477,7 @@ trace_t		CM_BoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int he
 ///	c_traces++;			// for statistics, may be zeroed
 
 	// fill in a default trace
-	Memset (&trace_trace, 0, sizeof(trace_trace));
+	memset (&trace_trace, 0, sizeof(trace_trace));
 	trace_trace.fraction = 1;
 	trace_trace.surface = &(nullsurface.c);
 
@@ -39038,7 +37838,7 @@ trace_t SV_Trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, edict_t *p
 	if (!maxs)
 		maxs = vec3_origin;
 
-	Memset ( &clip, 0, sizeof ( moveclip_t ) );
+	memset ( &clip, 0, sizeof ( moveclip_t ) );
 
 	// clip to world
 	clip.trace = CM_BoxTrace (start, end, mins, maxs, 0, contentmask);
@@ -39728,7 +38528,7 @@ void PM_CatagorizePosition ()
 
 			if (!(trace2.plane.normal[2] < 0.7f && !trace2.startsolid))
 			{
-				Memcpy(&trace, &trace2, sizeof(trace));
+				memcpy(&trace, &trace2, sizeof(trace));
 				pml.groundplane = trace.plane;
 				pml.groundsurface = trace.surface;
 				pml.groundcontents = trace.contents;
@@ -40466,7 +39266,7 @@ void Pmove (pmove_t *pmove)
 	pm->waterlevel = 0;
 
 	// clear all pmove local vars
-	Memset (&pml, 0, sizeof(pml));
+	memset (&pml, 0, sizeof(pml));
 
 	// convert origin and velocity to float values
 	pml.origin[0] = pm->s.origin[0]*0.125;
@@ -40644,7 +39444,7 @@ void StartModGame( void *self )
 	// close dedicated server if runned
 	CloseDedicatedServer();
 
-	Memset(&sti,0,sizeof(STARTUPINFO));
+	memset(&sti,0,sizeof(STARTUPINFO));
 	sti.cb=sizeof(STARTUPINFO);
 
 	if (s_mapname_field.buffer[0])
@@ -41201,7 +40001,7 @@ draw:
 	}
 
 	l->sphere = (((int)l->radiuses[0] == (int)l->radiuses[1]) && ((int)l->radiuses[0] == (int)l->radiuses[2]));
-	Memcpy(l->targetname, sl->targetname, MAX_QPATH);
+	memcpy(l->targetname, sl->targetname, MAX_QPATH);
 	l->start_off = sl->start_off;
 	l->noshadow = sl->noshadow;
 	l->noshadow2 = sl->noshadow2;
@@ -41231,10 +40031,10 @@ void R_SpawnLLight(shadowlight_t *sl)
 	l->filtercube_end = sl->filtercube_end;
 	l->framerate = sl->ownerkey;
 	VectorCopy(sl->angles, l->angles);
-	Memcpy(l->label, sl->label, MAX_QPATH);
+	memcpy(l->label, sl->label, MAX_QPATH);
 ///	l->use = true;
 ///	VectorCopy(sl->rspeed, l->rspeed);
-///	Memcpy(l->targetname, sl->targetname, MAX_QPATH);
+///	memcpy(l->targetname, sl->targetname, MAX_QPATH);
 ///	l->start_off = sl->start_off;
 }
 
@@ -41430,7 +40230,7 @@ void SV_InitGame ()
 		ent = EDICT_NUM(i+1);
 		ent->s.number = i+1;
 		svs.clients[i].edict = ent;
-		Memset (&svs.clients[i].lastcmd, 0, sizeof(svs.clients[i].lastcmd));
+		memset (&svs.clients[i].lastcmd, 0, sizeof(svs.clients[i].lastcmd));
 	}
 }
 
@@ -41686,7 +40486,7 @@ void SV_SendClientMessages ()
 
 void Cbuf_CopyToDefer ()
 {
-	Memcpy(defer_text_buf, cmd_text_buf, cmd_text.cursize);
+	memcpy(defer_text_buf, cmd_text_buf, cmd_text.cursize);
 	defer_text_buf[cmd_text.cursize] = 0;
 	cmd_text.cursize = 0;
 }
@@ -41782,7 +40582,7 @@ state[2] += c;
 state[3] += d;
 
 	/* Zeroize sensitive information.*/
-	Memset ((POINTER)x, 0, sizeof (x));
+	memset ((POINTER)x, 0, sizeof (x));
 }
 
 
@@ -41805,7 +40605,7 @@ void MD4Update (MD4_CTX *context, byte *input, unsigned inputLen)
 	/* Transform as many times as possible.*/
 	if (inputLen >= partLen)
 	{
- 		Memcpy((POINTER)&context->buffer[index], (POINTER)input, partLen);
+ 		memcpy((POINTER)&context->buffer[index], (POINTER)input, partLen);
 		MD4Transform (context->state, context->buffer);
 
  		for (i = partLen; i + 63 < inputLen; i += 64)
@@ -41817,7 +40617,7 @@ void MD4Update (MD4_CTX *context, byte *input, unsigned inputLen)
  		i = 0;
 
 	/* Buffer remaining input */
-	Memcpy ((POINTER)&context->buffer[index], (POINTER)&input[i], inputLen-i);
+	memcpy ((POINTER)&context->buffer[index], (POINTER)&input[i], inputLen-i);
 }
 
 
@@ -41856,7 +40656,7 @@ void MD4Final (byte digest[16], MD4_CTX *context)
 	Encode (digest, context->state, 16);
 
 	/* Zeroize sensitive information.*/
-	Memset ((POINTER)context, 0, sizeof (*context));
+	memset ((POINTER)context, 0, sizeof (*context));
 }
 
 
@@ -42209,7 +41009,7 @@ void CMod_LoadVisibility (lump_t *l)
 	if (l->filelen > MAX_MAP_VISIBILITY)
 		Com_Error (ERR_DROP, "Map has too large visibility lump");
 
-	Memcpy (map_visibility, cmod_base + l->fileofs, l->filelen);
+	memcpy (map_visibility, cmod_base + l->fileofs, l->filelen);
 
 	map_vis->numclusters = LittleLong (map_vis->numclusters);
 	for (i=0 ; i<map_vis->numclusters ; i++)
@@ -42233,7 +41033,7 @@ cdlight_t *CL_AllocDlight (int key)
 		{
 			if (dl->key == key)
 			{
-				Memset (dl, 0, sizeof(*dl));
+				memset (dl, 0, sizeof(*dl));
 				dl->key = key;
 				return dl;
 			}
@@ -42246,14 +41046,14 @@ cdlight_t *CL_AllocDlight (int key)
 	{
 		if (dl->die < cl.gameTime)
 		{
-			Memset (dl, 0, sizeof(*dl));
+			memset (dl, 0, sizeof(*dl));
 			dl->key = key;
 			return dl;
 		}
 	}
 
 	dl = &cl_dlights[0];
-	Memset (dl, 0, sizeof(*dl));
+	memset (dl, 0, sizeof(*dl));
 	dl->key = key;
 	return dl;
 }
@@ -42863,14 +41663,14 @@ char *CMod_FilterEnts (char *in, char *out, char **ents, bool it)
 
 		if (!condition_true)
 		{
-			Memcpy (out, bak, in-bak);
+			memcpy (out, bak, in-bak);
 			out += in-bak;
 
 			if (it && worldspawn_ && !VectorCompare(amb, vec3_origin))
 			{
 				char stroka[MAX_QPATH];
 				Com_sprintf (stroka, sizeof(stroka), "\"ambient\" \"%f %f %f\"}", amb[0], amb[1], amb[2]);
-				Memcpy(out-1, stroka, strlen(stroka));
+				memcpy(out-1, stroka, strlen(stroka));
 				out += strlen(stroka)-1;
 				worldspawn_=false;
 			}
@@ -42991,7 +41791,7 @@ unsigned	CMod_LoadEntityString (lump_t *l, char *name)
 	if (l->filelen > MAX_MAP_ENTSTRING)
 		Com_Error (ERR_DROP, "Map has too large entity lump");
 
-	Memset (map_entitystring, 0, MAX_MAP_ENTSTRING);					/// Fixed by Berserker: обнуляем map_entitystring, ибо возможно наложение предыдущей строки в случае отсутствия нуля в загружаемой строке. ("мистика"-баг)
+	memset (map_entitystring, 0, MAX_MAP_ENTSTRING);					/// Fixed by Berserker: обнуляем map_entitystring, ибо возможно наложение предыдущей строки в случае отсутствия нуля в загружаемой строке. ("мистика"-баг)
 	VectorClear(amb);
 	VectorClear(sky_origin);
 	VectorClear(sky_viewcenter);
@@ -43011,7 +41811,7 @@ unsigned	CMod_LoadEntityString (lump_t *l, char *name)
 	if(!r_relight->value)
 		goto stop;
 
-	Memcpy (lit, name, len);
+	memcpy (lit, name, len);
 	lit[len-3] = 'l';
 	lit[len-2] = 'i';
 	lit[len-1] = 't';
@@ -43022,21 +41822,21 @@ unsigned	CMod_LoadEntityString (lump_t *l, char *name)
 	{
 stop:	if (litdata)
 			Z_Free (litdata);
-		Memcpy (map_entitystring, in, l->filelen);
+		memcpy (map_entitystring, in, l->filelen);
 		return 0;		// нет доп.чексуммы (для совместимости со старыми серверами)
 	}
 
 	buf = (char*)Z_Malloc(len+2, false);
 	if(!buf)
 		goto stop;
-///	Memset (buf, 0, len+2);
+///	memset (buf, 0, len+2);
 
 	CMod_ScanForAmbient(litdata);
 	end = CMod_FilterEnts (in, map_entitystring, ents0, true);		// Копируем строку из ент-стринга карты в Out, игнорируя classname, перечисленные в ents0
 // это копирование делать вторым!!! чтоб позже воспользоваться результатом проверки condition_cheat !!!
 	endbuf = CMod_FilterEnts (litdata, buf, ents1, false);			// Копируем строку из релайта в буфер, игнорируя все кроме classname, перечисленные в ents1
 	end[0]=0x0a;
-	Memcpy (end+1, buf, endbuf-buf);								// Дописываем энтитис релайта
+	memcpy (end+1, buf, endbuf-buf);								// Дописываем энтитис релайта
 	unsigned checksum = LittleLong (Com_BlockChecksum (end+1, endbuf-buf));
 	if (condition_cheat)
 		Com_Printf("^1*** cheater's relight detected ***\n");
@@ -43384,18 +42184,18 @@ char *ParseEnt (char *data, shadowlight_t *l, bool server)
 			l->nobump = (bool)atoi(token);
 		else if (!strcmp(keyname, "model"))
 		{
-			Memcpy(l->vis, token, MAX_QPATH);
+			memcpy(l->vis, token, MAX_QPATH);
 			if(l->vis[0]=='*')
 				ent_id = ENT_BRUSHMODEL;
 		}
 		else if (!strcmp(keyname, "map"))
-			Memcpy(l->vis, token, MAX_QPATH-1);
+			memcpy(l->vis, token, MAX_QPATH-1);
 		else if (!strcmp(keyname, "label"))
-			Memcpy(l->label, token, MAX_QPATH);
+			memcpy(l->label, token, MAX_QPATH);
 		else if (!strcmp(keyname, "targetname"))
-			Memcpy(l->targetname, token, MAX_QPATH);
+			memcpy(l->targetname, token, MAX_QPATH);
 		else if (!strcmp(keyname, "noise"))				// клиентские модели не используют targetname, заюзаем как буфер
-			Memcpy(l->targetname, token, MAX_QPATH);
+			memcpy(l->targetname, token, MAX_QPATH);
 		else if (!strcmp(keyname, "classname"))
 		{
 			if(strcmp(token, "light"))
@@ -43529,7 +42329,7 @@ void R_SpawnEmit(shadowlight_t *sl)
 	if (sl->ownerkey > 127)	l->gravity = 127;
 	else if (sl->ownerkey < -128)	l->gravity = -128;
 	else l->gravity = sl->ownerkey;
-	Memcpy(l->label, sl->label, MAX_QPATH);
+	memcpy(l->label, sl->label, MAX_QPATH);
 	l->area = CM_LeafArea (CM_PointLeafnum (l->origin));
 	if (!l->area)
 		Com_DPrintf("Emitter out of BSP at %f %f %f\n", l->origin[0], l->origin[1], l->origin[2]);
@@ -43637,7 +42437,7 @@ bool R_MarkAliasLeaves(alink_t *alias)
 
 	alias->areas[8] = CM_LeafArea (CM_PointLeafnum (org));
 
-	Memset(alias->vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
+	memset(alias->vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
 	for (j=0; j<8; j++)
 	{
 		vec3_t	mins_, maxs_;
@@ -43668,7 +42468,7 @@ bool R_MarkAliasLeaves(alink_t *alias)
 		}
 
 		// строим vis-data
-		Memcpy (vis_, CM_ClusterPVS(CM_LeafCluster (CM_PointLeafnum (org))), (((numclusters+31)>>5)<<2));
+		memcpy (vis_, CM_ClusterPVS(CM_LeafCluster (CM_PointLeafnum (org))), (((numclusters+31)>>5)<<2));
 		count = CM_BoxLeafnums (mins_, maxs_, leafs, r_worldmodel->numleafs/*MAX_MAP_LEAFS*/, NULL);
 		if (count < 1)
 			Com_Error (ERR_FATAL, "R_MarkAliasLeaves: count < 1");
@@ -43678,7 +42478,7 @@ bool R_MarkAliasLeaves(alink_t *alias)
 		for (i=0 ; i<count ; i++)
 			leafs[i] = CM_LeafCluster(leafs[i]);
 
-		Memset(&vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
+		memset(&vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
 		for (i=0 ; i<count ; i++)
 			vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 		// вырезаем кластеры, которых нет в списке leafs
@@ -43703,9 +42503,9 @@ void R_SpawnAlias(shadowlight_t *sl)
 
 	VectorCopy(sl->origin, l->origin);
 	VectorCopy(sl->angles, l->angles);
-	Memcpy(l->model, sl->vis, MAX_QPATH);
-	Memcpy(l->label, sl->label, MAX_QPATH);
-	Memcpy(l->sound, sl->targetname, MAX_QPATH);
+	memcpy(l->model, sl->vis, MAX_QPATH);
+	memcpy(l->label, sl->label, MAX_QPATH);
+	memcpy(l->sound, sl->targetname, MAX_QPATH);
 	if (l->sound[0])
 	{
 		if (!strstr (l->sound, ".wav"))
@@ -43785,7 +42585,7 @@ void R_SpawnBrush(shadowlight_t *sl)
 	if (!l)
 		return;
 
-	Memcpy(l->label, sl->label, MAX_QPATH);
+	memcpy(l->label, sl->label, MAX_QPATH);
 	l->nodraw = sl->nobump;
 
 	if (old != brushmodel_counter)
@@ -43848,19 +42648,19 @@ void CM_SpawnEntities (char *entities, bool server)
 	char *token;
 	decals_needs_spawn = false;
 	num_deferred_decals = 0;
-	Memset(deferred_decals, 0, (MAX_DECALS+1)*sizeof(defDecal_t));
+	memset(deferred_decals, 0, (MAX_DECALS+1)*sizeof(defDecal_t));
 
 	if (!server)
 	{
 		aliasmodel_counter = brushmodel_counter = lightmodel_counter = 0;
-		Memset(lightstyles, 0, sizeof(lightstyles));
-		Memset(cl_lightstyles, 0, sizeof(cl_lightstyles));
+		memset(lightstyles, 0, sizeof(lightstyles));
+		memset(cl_lightstyles, 0, sizeof(cl_lightstyles));
 	}
 
 	// parse ents
 	while (1)
 	{
-		Memset (&sl, 0, sizeof(sl));
+		memset (&sl, 0, sizeof(sl));
 
 		// parse the opening brace
 		token = COM_Parse (&entities);
@@ -44008,8 +42808,8 @@ void CM_SpawnEntities (char *entities, bool server)
 					if (sl.style > 0 && sl.style < MAX_LIGHTSTYLES_OVERRIDE)
 					{
 						CheckLightStyle((char*)sl.vis);
-						Memset(lightstyles[sl.style], 0, MAX_QPATH);
-						Memcpy(lightstyles[sl.style], sl.vis, MAX_QPATH-1);
+						memset(lightstyles[sl.style], 0, MAX_QPATH);
+						memcpy(lightstyles[sl.style], sl.vis, MAX_QPATH-1);
 						Com_DPrintf("LightStyle %i overrided with \"%s\"\n", sl.style, lightstyles[sl.style]);
 					}
 			}
@@ -44580,7 +43380,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 		if (!clientload)
 		{
 ///			if(!areaportals_from_server)
-				Memset (portalopen, 0, sizeof(portalopen));
+				memset (portalopen, 0, sizeof(portalopen));
 
 			FloodAreaConnections ();
 		}
@@ -44596,8 +43396,8 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	numentitychars = 0;
 
 	//r1: fix for missing terminators on some badly compiled maps
-	Memset (map_entitystring, 0, sizeof(map_entitystring));
-	Memset (map_name, 0, sizeof(map_name));
+	memset (map_entitystring, 0, sizeof(map_entitystring));
+	memset (map_name, 0, sizeof(map_name));
 
 	if (!name || !name[0])
 	{
@@ -44654,7 +43454,7 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 	CM_InitBoxHull ();
 
 ///	if(!areaportals_from_server)
-		Memset (portalopen, 0, sizeof(portalopen));
+		memset (portalopen, 0, sizeof(portalopen));
 
 ///	areaportals_from_server = false;
 	FloodAreaConnections ();
@@ -44714,7 +43514,7 @@ areanode_t *SV_CreateAreaNode (int depth, vec3_t mins, vec3_t maxs)
 
 void SV_ClearWorld ()
 {
-	Memset (sv_areanodes, 0, sizeof(sv_areanodes));
+	memset (sv_areanodes, 0, sizeof(sv_areanodes));
 	sv_numareanodes = 0;
 	SV_CreateAreaNode (0, sv.models[1]->mins, sv.models[1]->maxs);
 }
@@ -44893,7 +43693,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, server_state_t serverstate,
 	Com_SetServerState (sv.state);
 
 	// wipe the entire per-level structure
-	Memset (&sv, 0, sizeof(sv));
+	memset (&sv, 0, sizeof(sv));
 	svs.realtime = 0;
 	sv.loadgame = loadgame;
 	sv.attractloop = attractloop;
@@ -45490,14 +44290,14 @@ void R_ResampleShot (byte *indata, int inwidth, int inheight, byte *outdata, int
 		{
 			inrow = (byte *)indata + inwidth*3*yi;
 			if (yi == oldy+1)
-				Memcpy(row1, row2, outwidth*3);
+				memcpy(row1, row2, outwidth*3);
 			else
 				R_ResampleShotLerpLine (inrow, row1, inwidth, outwidth);
 
 			if (yi < endy)
 				R_ResampleShotLerpLine (inrow + inwidth*3, row2, inwidth, outwidth);
 			else
-				Memcpy(row2, row1, outwidth*3);
+				memcpy(row2, row1, outwidth*3);
 			oldy = yi;
 		}
 		if (yi < endy)
@@ -45631,7 +44431,7 @@ void R_FreePic (char *name)
 		{
 			// free it
 			glDeleteTextures (1, &image->texnum);
-			Memset (image, 0, sizeof(*image));
+			memset (image, 0, sizeof(*image));
 			return; //we're done here
 		}
 	}
@@ -45974,8 +44774,6 @@ void CL_ParseConfigString ()
 					savdir = "save";
 				else
 					savdir = "save.q2b";
-				// UCyborg: wut?
-//				strcpy(mapshot, va("pics/../%s/%s/shot.tga", savdir, saved_shot_dir));
 				strcpy(mapshot, va("%s/%s/shot.tga", savdir, saved_shot_dir));
 				FS_ClearFileCache(mapshot);
 				strcpy(mapshot, va("/%s/%s/shot.tga", savdir, saved_shot_dir));
@@ -46197,8 +44995,8 @@ void Con_Get_f ()
 
 void Con_Clear_f ()
 {
-	Memset (con.text, ' ', CON_TEXTSIZE);
-	Memset (con.color, 7, CON_TEXTSIZE);
+	memset (con.text, ' ', CON_TEXTSIZE);
+	memset (con.color, 7, CON_TEXTSIZE);
 }
 
 
@@ -47400,7 +46198,7 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, 
 	m[1][2] = vf[1];
 	m[2][2] = vf[2];
 
-	Memcpy( im, m, sizeof( im ) );
+	memcpy( im, m, sizeof( im ) );
 
 	im[0][1] = m[1][0];
 	im[0][2] = m[2][0];
@@ -47409,7 +46207,7 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, 
 	im[2][0] = m[0][2];
 	im[2][1] = m[1][2];
 
-	Memset( zrot, 0, sizeof( zrot ) );
+	memset( zrot, 0, sizeof( zrot ) );
 	zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0F;
 
 #if 0
@@ -47876,7 +46674,7 @@ void R_MarkLeaves ()
 			r_worldmodel->leafs[i].visframe = r_visframecount;
 		for (i=0 ; i<r_worldmodel->numnodes ; i++)
 			r_worldmodel->nodes[i].visframe = r_visframecount;
-		Memset(&viewvis, 0xff, (r_worldmodel->numleafs+7)>>3);	// all visible
+		memset(&viewvis, 0xff, (r_worldmodel->numleafs+7)>>3);	// all visible
 		return;
 	}
 
@@ -47884,7 +46682,7 @@ void R_MarkLeaves ()
 	// may have to combine two clusters because of solid water boundaries
 	if (r_viewcluster2 != r_viewcluster)
 	{
-		Memcpy (fatvis, vis, (r_worldmodel->numleafs+7)>>3);
+		memcpy (fatvis, vis, (r_worldmodel->numleafs+7)>>3);
 		vis = Mod_ClusterPVS (r_viewcluster2, r_worldmodel);
 		c = (r_worldmodel->numleafs+31)/32;
 		for (i=0 ; i<c ; i++)
@@ -47892,7 +46690,7 @@ void R_MarkLeaves ()
 		vis = fatvis;
 	}
 
-	Memcpy(&viewvis, vis, (r_worldmodel->numleafs+7)>>3);
+	memcpy(&viewvis, vis, (r_worldmodel->numleafs+7)>>3);
 
 	for (i=0,leaf=r_worldmodel->leafs ; i<r_worldmodel->numleafs ; i++, leaf++)
 	{
@@ -48494,7 +47292,7 @@ void GL_FreeUnusedImages ()
 
 kill:	// free it
 		glDeleteTextures (1, &image->texnum);
-		Memset (image, 0, sizeof(*image));
+		memset (image, 0, sizeof(*image));
 	}
 }
 
@@ -48749,46 +47547,10 @@ force:	glDisable (GL_DEPTH_TEST);
 }
 
 
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-#pragma warning (disable:4035)
-#endif
-#endif
-NAKED long Q_ftol( float f )
+static inline long Q_ftol( float f )
 {
-#ifdef ENABLE_ASM
-	static int tmp777;
-#endif
-
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-	_asm
-	{
-		fld dword ptr [esp+4]
-		fistp tmp777
-		mov eax, tmp777
-		ret
-	}
-#else
-	__asm__
-	(
-		"flds %1\n"
-		"fistps %0\n"
-		: "=m" (tmp777)
-		: "m" (f)
-		:
-	);
-#endif
-	return tmp777;
-#else
 	return (long)f;
-#endif
 }
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-#pragma warning (default:4035)
-#endif
-#endif
 
 
 float SphereInFrustum( vec3_t o, float radius )
@@ -49971,7 +48733,7 @@ void R_DrawAmbientWorld ()
 	VectorCopy (r_origin, modelorg);
 
 	// auto cycle the world frame for texture animation
-	Memset (&ent, 0, sizeof(ent));
+	memset (&ent, 0, sizeof(ent));
 	ent.frame = (int)(r_newrefdef.time*2);
 	currententity = &ent;
 
@@ -52202,7 +50964,7 @@ void Mod_LoadAliasMD3Model ( model_t *mod, void *buffer, float scale, bool inver
 	{
 		for ( l = 0; l < poutmodel->num_tags; l++, pintag++, pouttag++ )
 		{
-			Memcpy ( pouttag->name, pintag->name, MD3_MAX_PATH );
+			memcpy ( pouttag->name, pintag->name, MD3_MAX_PATH );
 			for ( j = 0; j < 3; j++ )
 			{
 				pouttag->orient.origin[j] = LittleFloat ( pintag->orient.origin[j] );
@@ -52224,7 +50986,7 @@ void Mod_LoadAliasMD3Model ( model_t *mod, void *buffer, float scale, bool inver
 	mod->flags = 0;
 	for ( i = 0; i < poutmodel->num_meshes; i++, poutmesh++)
 	{
-		Memcpy (poutmesh->name, pinmesh->name, MD3_MAX_PATH);
+		memcpy (poutmesh->name, pinmesh->name, MD3_MAX_PATH);
 
 		if ( strncmp ((const char *)pinmesh->id, "IDP3", 4))
 			Com_Error ( ERR_DROP, "mesh %s in model %s has wrong id (%i should be %i)", poutmesh->name, mod->name, pinmesh->id, IDMD3HEADER );
@@ -52272,11 +51034,11 @@ void Mod_LoadAliasMD3Model ( model_t *mod, void *buffer, float scale, bool inver
 				poutmesh->img_bumps[j] = poutmesh->img_lights[j] = NULL;
 				continue;
 			}
-///			Memcpy (poutskin->name, pinskin->name, MD3_MAX_PATH);
+///			memcpy (poutskin->name, pinskin->name, MD3_MAX_PATH);
 			if (pinskin->name[0]=='.' && pinskin->name[1]=='.')	// ".."
 				FS_UnionPath(mod->name, pinskin->name, name, sizeof(name));
 			else
-				Memcpy (name, pinskin->name, MD3_MAX_PATH);
+				memcpy (name, pinskin->name, MD3_MAX_PATH);
 			while (RepairPath(name));	/// Berserker: устранение безобразия типа в модели: "models\monsters\tank\tris.md2" - там есть строки типа "models/monsters/tank/../ctank/skin.pcx"
 			int len = strlen(name);
 			char *dot = strstr (name, ".");
@@ -52463,8 +51225,8 @@ err:		if (!cache)
 			// for all frames
 			for (l=0; l<poutmodel->num_frames; l++)
 			{
-				Memset(tangents, 0, poutmesh->num_verts*sizeof(vec3_t));
-				Memset(binormals, 0, poutmesh->num_verts*sizeof(vec3_t));
+				memset(tangents, 0, poutmesh->num_verts*sizeof(vec3_t));
+				memset(binormals, 0, poutmesh->num_verts*sizeof(vec3_t));
 				poutvert = poutmesh->vertexes + l * poutmesh->num_verts;
 				for ( j = 0; j < poutmesh->num_verts; j++, pinvert++, poutvert++ )
 				{
@@ -52571,7 +51333,7 @@ err:		if (!cache)
 	char	nam[MAX_OSPATH];
 	char	*buff;
 	i = strlen(mod->name);
-	Memcpy(nam, mod->name, i);
+	memcpy(nam, mod->name, i);
 	nam[i-3]='f';
 	nam[i-2]='x';
 	nam[i]=0;
@@ -52698,7 +51460,7 @@ void Mod_LoadSpriteModel(model_t *mod, void *buffer, bool cache)
 		sprout->frames[i].height = LittleLong (sprin->frames[i].height);
 		sprout->frames[i].origin_x = LittleLong (sprin->frames[i].origin_x);
 		sprout->frames[i].origin_y = LittleLong (sprin->frames[i].origin_y);
-		Memcpy (sprout->frames[i].name, sprin->frames[i].name, MAX_SKINNAME);
+		memcpy (sprout->frames[i].name, sprin->frames[i].name, MAX_SKINNAME);
 		mod->skins[i] = GL_FindImage (sprout->frames[i].name, it_sprite, false, 0, false, 0);	/// !!! Для спрайтов не бывает бампа!!!
 		// не нашли, попробуем взять шкуру используя путь до спрайта
 		if (!mod->skins[i])
@@ -52803,7 +51565,7 @@ bool Mod_LoadAliasModel (model_t *mod, void *buffer, float scale, bool invert, i
 		pinframe = (daliasframe_t *) ((byte *)pinmodel + pheader->ofs_frames + i * pheader->framesize);
 		poutframe = (daliasframe_t *) ((byte *)pheader + pheader->ofs_frames + i * pheader->framesize);
 
-///		Memcpy (poutframe->name, pinframe->name, sizeof(poutframe->name));		// poutframe->name NOT USED ???
+///		memcpy (poutframe->name, pinframe->name, sizeof(poutframe->name));		// poutframe->name NOT USED ???
 		for (j=0 ; j<3 ; j++)
 		{
 			poutframe->scale[j] = LittleFloat (pinframe->scale[j]) * scale;
@@ -52815,7 +51577,7 @@ bool Mod_LoadAliasModel (model_t *mod, void *buffer, float scale, bool invert, i
 			poutframe->translate[1] = -poutframe->translate[1];
 		}
 		// verts are all 8 bit, so no swapping needed
-		Memcpy (poutframe->verts, pinframe->verts, pheader->num_xyz*sizeof(dtrivertx_t));
+		memcpy (poutframe->verts, pinframe->verts, pheader->num_xyz*sizeof(dtrivertx_t));
 	}
 
 //
@@ -52860,7 +51622,7 @@ bool Mod_LoadAliasModel (model_t *mod, void *buffer, float scale, bool invert, i
 	char	nam[MAX_OSPATH];
 	char	*buff;
 	i = strlen(mod->name);
-	Memcpy(nam, mod->name, i);
+	memcpy(nam, mod->name, i);
 	nam[i-3]='f';
 	nam[i-2]='x';
 	nam[i]=0;
@@ -52886,7 +51648,7 @@ bool Mod_LoadAliasModel (model_t *mod, void *buffer, float scale, bool invert, i
 			return false;		// зарезервировано памяти по данным из кэша, а модель имеет другой тип сглаживания! Сброс!
 
 	// register all skins
-	Memcpy ((char *)pheader + pheader->ofs_skins, (char *)pinmodel + pheader->ofs_skins, pheader->num_skins*MAX_SKINNAME);
+	memcpy ((char *)pheader + pheader->ofs_skins, (char *)pinmodel + pheader->ofs_skins, pheader->num_skins*MAX_SKINNAME);
 
 	if (cache)	/// хак: если кэшируем, то нет нужды грузить шкуры.
 		pheader->num_skins = 0;
@@ -53186,8 +51948,8 @@ okey:	Com_DPrintf("%s: loaded from cache\n", mod->name);
 		for (i=0; i<pheader->num_frames; i++)
 		{
 			//set temp to zero
-			Memset(tangents_, 0, pheader->num_xyz*sizeof(vec3_t));
-			Memset(binormals_, 0, pheader->num_xyz*sizeof(vec3_t));
+			memset(tangents_, 0, pheader->num_xyz*sizeof(vec3_t));
+			memset(binormals_, 0, pheader->num_xyz*sizeof(vec3_t));
 
 			frame = (daliasframe_t *)((byte *)pheader + pheader->ofs_frames + i * pheader->framesize);
 			verts = frame->verts;
@@ -56407,7 +55169,7 @@ if (cl_mod_beam && p->type == part_rail_beam)
 	entity_t	beam;
 	dsprite2_t	*psprite;
 
-	Memset (&beam, 0, sizeof(beam));
+	memset (&beam, 0, sizeof(beam));
 	psprite = (dsprite2_t *)cl_mod_beam->extradata;
 	beam.model = cl_mod_beam;
 	VectorCopy(p->origin, beam.origin);
@@ -57673,10 +56435,9 @@ l3:
 }
 */
 
-/// from Tenebrae, asm by Berserker
-NAKED bool HasSharedLeafs(byte *v1, byte *v2)
+/// from Tenebrae
+bool HasSharedLeafs(byte *v1, byte *v2)
 {
-#ifndef ENABLE_ASM
 	int i, j, k, l;
 	l = r_worldmodel->numleafs>>5;
 	for (i=0 ; i<l ; i++)
@@ -57694,101 +56455,6 @@ NAKED bool HasSharedLeafs(byte *v1, byte *v2)
 	}
 
 	return false;
-#else
-	int numleafs__ = r_worldmodel->numleafs;
-
-#ifdef _MSC_VER
-	_asm
-	{
-		mov edx, numleafs__
-		mov esi, v1
-		mov edi, v2
-		shr edx, 5
-		jz short l4
-l0:		mov eax, [esi]
-		add esi, 4
-		test eax, [edi]
-		jnz short l3
-		add edi, 4
-		dec edx
-		jnz short l0
-l4:		mov edx, numleafs__
-		mov esi, v1
-		and edx, ~0x1f
-		mov edi, v2
-		cmp edx, numleafs__
-		jz short l5
-l1:		mov eax, edx
-		mov ecx, edx
-		mov ebx, 1
-		and ecx, 7
-		shr eax, 3
-		shl ebx, cl
-		test byte ptr [esi+eax], bl
-		jz short l2
-		test byte ptr [edi+eax], bl
-		jnz short l3
-l2:		inc edx
-		cmp edx, numleafs__
-		jc short l1
-	}
-l5:	return false;
-	_asm
-	{
-l3:
-	}
-	return true;
-#else
-	__asm__ goto
-	(
-		"movl %0,%%edx\n"
-		"movl %1,%%esi\n"
-		"movl %2,%%edi\n"
-		"shrl $5,%%edx\n"
-		"jz 2f\n"
-
-		"1:\n"
-		"movl (%%esi),%%eax\n"
-		"addl $4,%%esi\n"
-		"testl (%%edi),%%eax\n"
-		"jnz %l[ja]\n"
-		"addl $4,%%edi\n"
-		"decl %%edx\n"
-		"jnz 1b\n"
-
-		"2:\n"
-		"movl %0,%%edx\n"
-		"movl %1,%%esi\n"
-		"andl $0xffffffec,%%edx\n"
-		"movl %2,%%edi\n"
-		"cmpl %0,%%edx\n"
-		"jz %l[nein]\n"
-
-		"3:\n"
-		"movl %%edx,%%eax\n"
-		"movl %%edx,%%ecx\n"
-		"movl $1,%%ebx\n"
-		"andl $7,%%ecx\n"
-		"shrl $3,%%eax\n"
-		"shll %%cl,%%ebx\n"
-		"testb %%bl,(%%esi,%%eax)\n"
-		"jz 4f\n"
-		"testb %%bl,(%%edi,%%eax)\n"
-		"jnz %l[ja]\n"
-
-		"4:\n"
-		"incl %%edx\n"
-		"cmpl %0,%%edx\n"
-		"jc 3b\n"
-		:
-		: "m" (numleafs__), "m" (v1), "m" (v2)
-		: "%edx", "%esi", "%edi", "%eax", "%ebx"
-		: nein, ja
-	);
-nein:return false;
-ja:  return true;
-#endif
-#endif
 }
 
 
@@ -58037,7 +56703,7 @@ skip:	Com_DPrintf("Out of BSP, rejected light at %f %f %f\n", currentshadowlight
 	}
 
 	// строим vis-data
-	Memcpy (&currentshadowlight->vis, CM_ClusterPVS(cluster), (((numclusters+31)>>5)<<2));
+	memcpy (&currentshadowlight->vis, CM_ClusterPVS(cluster), (((numclusters+31)>>5)<<2));
 
 	int		leafs[MAX_MAP_LEAFS];
 	int		i, count;
@@ -58060,7 +56726,7 @@ skip:	Com_DPrintf("Out of BSP, rejected light at %f %f %f\n", currentshadowlight
 	for (i=0 ; i<count ; i++)
 		leafs[i] = CM_LeafCluster(leafs[i]);
 
-	Memset(&vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
+	memset(&vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
 	for (i=0 ; i<count ; i++)
 		vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 	// вырезаем кластеры, которых нет в списке leafs
@@ -58198,8 +56864,8 @@ void R_InitShadowsForFrame ()
 	numUsedShadowLights = 0;
 
 ///	int len = (r_worldmodel->vis->numclusters+7)>>3;
-///	Memcpy(&viewvis, Mod_ClusterPVS (r_viewcluster, r_worldmodel), len);
-///	Memset(&viewvis[len], 0, ((r_worldmodel->numleafs+7)>>3) - len);	// all other invisible
+///	memcpy(&viewvis, Mod_ClusterPVS (r_viewcluster, r_worldmodel), len);
+///	memset(&viewvis[len], 0, ((r_worldmodel->numleafs+7)>>3) - len);	// all other invisible
 ///	if (!r_mirror)
 ///		viewarea = CM_LeafArea (CM_PointLeafnum (r_origin));	/// not used...
 
@@ -59033,22 +57699,22 @@ void CL_PrepRefresh ()
 					token = COM_Parse (&s);
 					if (!Q_strcasecmp(token, "relaxTrackName"))
 					{
-						Memcpy(trackName_Relax, COM_Parse(&s), sizeof(trackName_Relax));
+						memcpy(trackName_Relax, COM_Parse(&s), sizeof(trackName_Relax));
 						continue;
 					}
 					if (!Q_strcasecmp(token, "tensionTrackName"))
 					{
-						Memcpy(trackName_RelaxToCombat, COM_Parse(&s), sizeof(trackName_RelaxToCombat));
+						memcpy(trackName_RelaxToCombat, COM_Parse(&s), sizeof(trackName_RelaxToCombat));
 						continue;
 					}
 					if (!Q_strcasecmp(token, "combatTrackName"))
 					{
-						Memcpy(trackName_Combat, COM_Parse(&s), sizeof(trackName_Combat));
+						memcpy(trackName_Combat, COM_Parse(&s), sizeof(trackName_Combat));
 						continue;
 					}
 					if (!Q_strcasecmp(token, "calmTrackName"))
 					{
-						Memcpy(trackName_CombatToRelax, COM_Parse(&s), sizeof(trackName_CombatToRelax));
+						memcpy(trackName_CombatToRelax, COM_Parse(&s), sizeof(trackName_CombatToRelax));
 						continue;
 					}
 				}
@@ -59101,10 +57767,10 @@ void CL_PrepRefresh ()
 				}
 
 				if (!trackName_RelaxToCombat[0] && trackName_Combat[0])
-					Memcpy(trackName_RelaxToCombat, trackName_Combat, sizeof(trackName_CombatToRelax));
+					memcpy(trackName_RelaxToCombat, trackName_Combat, sizeof(trackName_CombatToRelax));
 
 				if (!trackName_CombatToRelax[0] && trackName_Relax[0])
-					Memcpy(trackName_CombatToRelax, trackName_Relax, sizeof(trackName_CombatToRelax));
+					memcpy(trackName_CombatToRelax, trackName_Relax, sizeof(trackName_CombatToRelax));
 
 				if (trackName_Relax[0] && trackName_RelaxToCombat[0] && trackName_Combat[0] && trackName_CombatToRelax[0])
 					TrackIsCombat_old = OLD_TRACK_UNKNOWN;
@@ -59136,7 +57802,7 @@ void CL_Create_f()
 	if (le_mode)
 	{
 		llink_t	tlink;
-		Memcpy(&tlink, &link_clipboard, sizeof(llink_t));
+		memcpy(&tlink, &link_clipboard, sizeof(llink_t));
 		link_clipboard.radius = 300;
 		VectorCopy(r_origin, link_clipboard.origin);
 		VectorSet(link_clipboard.color, 1,1,1);
@@ -59147,13 +57813,13 @@ void CL_Create_f()
 		link_clipboard.filtercube_start = link_clipboard.filtercube_end = 0;
 		link_clipboard.framerate = 2;
 		CL_Paste_f();
-		Memcpy(&link_clipboard, &tlink, sizeof(llink_t));
+		memcpy(&link_clipboard, &tlink, sizeof(llink_t));
 	}
 	else
 	{
 		shadowlight_t	tlight;
 
-		Memcpy(&tlight, &light_clipboard, sizeof(shadowlight_t));
+		memcpy(&tlight, &light_clipboard, sizeof(shadowlight_t));
 		light_clipboard.radius = light_clipboard.radiuses[0] = light_clipboard.radiuses[1] = light_clipboard.radiuses[2] = 300;
 		VectorCopy(r_origin, light_clipboard.origin);
 		VectorSet(light_clipboard.color, 1,1,1);
@@ -59171,7 +57837,7 @@ void CL_Create_f()
 		light_clipboard.noshadow2 = false;
 		light_clipboard.nobump = false;
 		CL_Paste_f();
-		Memcpy(&light_clipboard, &tlight, sizeof(shadowlight_t));
+		memcpy(&light_clipboard, &tlight, sizeof(shadowlight_t));
 	}
 
 	Cl_UpdateEditorCvars(ED_LIGHT | ED_MODIFIED);
@@ -59245,9 +57911,9 @@ void CL_LabelBrush_f ()
 			return;				// Не помеченный браш и сброс лейбла - ничего не делаем.
 		if (CheckBrushLabel(arg))
 		{
-			Memcpy(sl.label, arg, MAX_QPATH);
+			memcpy(sl.label, arg, MAX_QPATH);
 			Com_sprintf(buf, sizeof(buf), "*%i", curbrushnum);
-			Memcpy(sl.vis, buf, sizeof(buf));
+			memcpy(sl.vis, buf, sizeof(buf));
 			sl.nobump = false;
 			VectorCopy(curbrush->origin, sl.origin);
 			R_SpawnBrush(&sl);
@@ -59262,7 +57928,7 @@ void CL_LabelBrush_f ()
 			if (i<brushmodel_counter-1)
 			{	// если не последний в списке, то придётся смещать список вниз
 				for (; i<brushmodel_counter-1; i++)
-					Memcpy(&bmdl_list[i], &bmdl_list[i+1], sizeof(blink_t));
+					memcpy(&bmdl_list[i], &bmdl_list[i+1], sizeof(blink_t));
 			}
 			brushmodel_counter--;
 			Com_Printf("Label deleted.\n");
@@ -59272,7 +57938,7 @@ void CL_LabelBrush_f ()
 		{
 			if (CheckBrushLabel(arg))
 			{
-				Memcpy(bmdl_list[i].label, arg, MAX_QPATH);	// просто сменим label
+				memcpy(bmdl_list[i].label, arg, MAX_QPATH);	// просто сменим label
 				Com_Printf("Label changed.\n");
 				Cl_UpdateEditorCvars(ED_BRUSH | ED_MODIFIED);
 			}
@@ -59562,7 +58228,7 @@ bool R_CalcSLight()
 	if(numLightCmds >= 1)
 	{
 		currentshadowlight->lightCmds = (lightcmd_t *)Z_Malloc(numLightCmds * 4, true);
-		Memcpy(currentshadowlight->lightCmds, &lightCmdsBuff, numLightCmds * 4);
+		memcpy(currentshadowlight->lightCmds, &lightCmdsBuff, numLightCmds * 4);
 	}
 	else
 		currentshadowlight->lightCmds = NULL;
@@ -59570,7 +58236,7 @@ bool R_CalcSLight()
 	if(numVolumeCmds >= 2)
 	{
 		currentshadowlight->volumeCmds = (lightcmd_t *)Z_Malloc(numVolumeCmds * 4, true);
-		Memcpy(currentshadowlight->volumeCmds, &volumeCmdsBuff, numVolumeCmds * 4);
+		memcpy(currentshadowlight->volumeCmds, &volumeCmdsBuff, numVolumeCmds * 4);
 		CreateShadowVBO();
 	}
 	else
@@ -62852,7 +61518,7 @@ void R_DrawWorldBumped()
 {
 	entity_t	ent;
 	// auto cycle the world frame for texture animation
-	Memset (&ent, 0, sizeof(ent));
+	memset (&ent, 0, sizeof(ent));
 	ent.frame = (int)(r_newrefdef.time*2);
 	currententity = &ent;
 
@@ -63525,7 +62191,7 @@ void HACK_RecalcVertsLightNormalIdx (dmdl_t *pheader, bool invert)
 		}
 */
 		vec3_t	normals_[MAX_VERTS];
-		Memset(normals_, 0, pheader->num_xyz*sizeof(vec3_t));
+		memset(normals_, 0, pheader->num_xyz*sizeof(vec3_t));
 
 		//for all tris
 		for (j=0; j<pheader->num_tris; j++)
@@ -63640,7 +62306,7 @@ void Mod_LoadLighting (lump_t *l)
 	}
 	loadmodel->lightdata = (byte *) Hunk_Alloc ( l->filelen, true );		// выделять память обязательно даже при кэшировании, чтоб получить верный *.mem
 	if (!caching__)		// при кэшировании пропустим этот шаг
-		Memcpy (loadmodel->lightdata, mod_base + l->fileofs, l->filelen);
+		memcpy (loadmodel->lightdata, mod_base + l->fileofs, l->filelen);
 }
 
 
@@ -63848,7 +62514,7 @@ void SubdividePolygon (int numverts, float *verts)
 	poly->verts[0][4] = total_t*sca;
 
 	// copy first vertex to last
-	Memcpy (poly->verts[i+1], poly->verts[1], sizeof(poly->verts[0]));
+	memcpy (poly->verts[i+1], poly->verts[1], sizeof(poly->verts[0]));
 }
 
 
@@ -63893,7 +62559,7 @@ void GL_SubdivideSurface (msurface_t *fa)
 
 void LM_InitBlock ()
 {
-	Memset( gl_lms.allocated, 0, sizeof( gl_lms.allocated ) );
+	memset( gl_lms.allocated, 0, sizeof( gl_lms.allocated ) );
 }
 
 
@@ -64181,7 +62847,7 @@ void Mod_LoadVisibility (lump_t *l)
 	loadmodel->vis = (dvis_t *) Hunk_Alloc ( l->filelen, true );
 	if (caching__)
 		return;
-	Memcpy (loadmodel->vis, mod_base + l->fileofs, l->filelen);
+	memcpy (loadmodel->vis, mod_base + l->fileofs, l->filelen);
 
 	loadmodel->vis->numclusters = LittleLong (loadmodel->vis->numclusters);
 	for (i=0 ; i<loadmodel->vis->numclusters ; i++)
@@ -64411,7 +63077,7 @@ void Create_Cache (char *ext, char *ext2, char *path, char *path2, void (*Create
 						{
 							if(!b_stricmp(ZipCache[i].pak_name, pak->filename))
 							{
-								Memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
+								memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
 								goto clc;
 							}
 						}
@@ -64428,7 +63094,7 @@ void Create_Cache (char *ext, char *ext2, char *path, char *path2, void (*Create
 				strcpy(&ZipCache[slot].pak_name[0], pak->filename);	// Если не нашли zip в кэше, откроем его...
 				if (!PackFileOpen (&ZipCache[slot]))
 					Com_Error(ERR_FATAL, "Error opening pk2-file: %s", pak->filename);
-				Memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
+				memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
 				goto clc2;
 clc:			slot = i;
 clc2:			for(i=0; i<pf.gi.number_entry; i++)
@@ -64436,7 +63102,7 @@ clc2:			for(i=0; i<pf.gi.number_entry; i++)
 					if(pf.fi[i].size)
 					{
 						char	nam[256];
-						Memcpy(nam, pf.fi[i].name, 256);
+						memcpy(nam, pf.fi[i].name, 256);
 						if(!Q_strncasecmp(nam, path, strlen(path)))
 						{
 							if(!Q_strcasecmp(nam+strlen(nam)-4, ext))
@@ -64458,7 +63124,7 @@ clc2:			for(i=0; i<pf.gi.number_entry; i++)
 				for (i=0 ; i<pak->numfiles ; i++)
 				{
 					char	nam[256];
-					Memcpy(nam, pak->files[i].name, 256);
+					memcpy(nam, pak->files[i].name, 256);
 					if(!Q_strncasecmp(nam, path, strlen(path)))
 						if(!Q_strcasecmp(nam+strlen(nam)-4, ext))
 						{
@@ -64764,7 +63430,7 @@ bool InLightVISEntity()
 		for (i=0 ; i<count ; i++)
 			leafs[i] = CM_LeafCluster(leafs[i]);
 
-		Memset(&currententity->vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
+		memset(&currententity->vis, 0, (((r_worldmodel->numleafs+31)>>5)<<2)/*MAX_MAP_LEAFS/8*/);
 		for (i=0 ; i<count ; i++)
 			currententity->vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 
@@ -66059,7 +64725,7 @@ void GL_DrawAliasFrameLerpLightATI4 (dmdl_t *paliashdr)
 	daliasframe_t	*frame, *oldframe;
 	dtrivertx_t	*verts, *oldverts;
 	WORD		cache[MAX_VERTS];
-	Memset(cache, 0xff, 2*MAX_VERTS);
+	memset(cache, 0xff, 2*MAX_VERTS);
 	float	backlerp, frontlerp;
 
 ///	if ( r_lerpmodels->value )
@@ -66266,7 +64932,7 @@ void GL_DrawAliasFrameLerpLightATI6 (dmdl_t *paliashdr)
 	daliasframe_t	*frame, *oldframe;
 	dtrivertx_t	*verts, *oldverts;
 	WORD		cache[MAX_VERTS];
-	Memset(cache, 0xff, 2*MAX_VERTS);
+	memset(cache, 0xff, 2*MAX_VERTS);
 	float	backlerp, frontlerp;
 
 ///	if ( r_lerpmodels->value )
@@ -66501,7 +65167,7 @@ void GL_DrawAliasFrameLerpLightARB (dmdl_t *paliashdr, int shader)
 	dtrivertx_t	*verts, *oldverts;
 	WORD		cache[MAX_VERTS];
 	bool		need_tsH = (!currentshadowlight->nobump && !(shader==SHADER_ARB4 && currentshadowlight->filtercube_start));
-	Memset(cache, 0xff, 2*MAX_VERTS);
+	memset(cache, 0xff, 2*MAX_VERTS);
 	float	backlerp, frontlerp;
 
 ///	if ( r_lerpmodels->value )
@@ -67639,7 +66305,7 @@ void GL_DrawAliasFrameLerpLight (dmdl_t *paliashdr, bool onepass)
 	daliasframe_t	*frame, *oldframe;
 	dtrivertx_t	*verts, *oldverts;
 	WORD		cache[MAX_VERTS];
-	Memset(cache, 0xff, 2*MAX_VERTS);
+	memset(cache, 0xff, 2*MAX_VERTS);
 	float	backlerp, frontlerp;
 
 ///	if ( r_lerpmodels->value )
@@ -70554,14 +69220,14 @@ stp:;		int sk = -1;		// skin counter
 						if (temps[0]=='.' && temps[1]=='.')	// ".."
 							FS_UnionPath(mod->name, temps, name, sizeof(name));
 						else
-							Memcpy(name, temps, MD3_MAX_PATH);		// копируем относительный путь
+							memcpy(name, temps, MD3_MAX_PATH);		// копируем относительный путь
 					}
 					else
 					{
 						if (token[0]=='.' && token[1]=='.')	// ".."
 							FS_UnionPath(mod->name, token, name, sizeof(name));
 						else
-							Memcpy(name, token, MD3_MAX_PATH);		// иначе попробуем то что было прописано
+							memcpy(name, token, MD3_MAX_PATH);		// иначе попробуем то что было прописано
 					}
 					while (RepairPath(name));	/// Berserker: устранение безобразия типа в модели: "models\monsters\tank\tris.md2" - там есть строки типа "models/monsters/tank/../ctank/skin.pcx"
 					i=strlen(name);
@@ -70756,7 +69422,7 @@ badM:					skins[idx][sk] = r_notexture;
 			node_skipped = -1;
 			mesh++;
 			mod->skins[mesh] = NULL;
-			Memset(mat, 0, 3*3*sizeof(float));
+			memset(mat, 0, 3*3*sizeof(float));
 			continue;
 		}
 		if (!strcmp(token, "*NODE_TM"))
@@ -70814,7 +69480,7 @@ badM:					skins[idx][sk] = r_notexture;
 			node_skipped--;
 			if (mesh>=0)
 			{
-				Memcpy(poutmesh[mesh].name, COM_Parse(&buf), MD3_MAX_PATH);
+				memcpy(poutmesh[mesh].name, COM_Parse(&buf), MD3_MAX_PATH);
 				continue;
 			}
 		}
@@ -70993,8 +69659,8 @@ badM:					skins[idx][sk] = r_notexture;
 				Com_Error ( ERR_DROP, "mesh %s in model %s has no vertices", poutmesh[mesh].name, mod->name );
 			else if (poutmesh[mesh].num_verts>MD3_MAX_VERTS)
 				Com_Error ( ERR_DROP, "mesh %s in model %s has too many vertices", poutmesh[mesh].name, mod->name );
-			Memset(tangents, 0, poutmesh[mesh].num_verts*sizeof(vec3_t));
-			Memset(binormals, 0, poutmesh[mesh].num_verts*sizeof(vec3_t));
+			memset(tangents, 0, poutmesh[mesh].num_verts*sizeof(vec3_t));
+			memset(binormals, 0, poutmesh[mesh].num_verts*sizeof(vec3_t));
 			if (!poutvert)
 				poutmesh[mesh].vertexes = (maliasvertex_t*) Hunk_Alloc(poutmodel->num_frames * poutmesh[mesh].num_verts * sizeof(maliasvertex_t), true);
 			poutvert = &poutmesh[mesh].vertexes[frm * poutmesh[mesh].num_verts];
@@ -71166,7 +69832,7 @@ badM:					skins[idx][sk] = r_notexture;
 	char	nam[MAX_OSPATH];
 	char	*buff;
 	i = strlen(mod->name);
-	Memcpy(nam, mod->name, i);
+	memcpy(nam, mod->name, i);
 	nam[i-3]='f';
 	nam[i-2]='x';
 	nam[i-1]='a';
@@ -72017,7 +70683,7 @@ void CL_FixUpGender()
 
 		char	nam[MAX_OSPATH];
 		char	*buff, *sex = NULL;
-		Memcpy(gender_model, skin->string, MAX_QPATH-1);
+		memcpy(gender_model, skin->string, MAX_QPATH-1);
 		gender_model[MAX_QPATH-1]=0;
 		char *p = strchr(gender_model, '/');
 		if (p)
@@ -72302,8 +70968,8 @@ void R_Mirror (mirror_t *mir)
 	refdef_t	refdef, oldrefdef;
 	vec3_t		real_vieworg, mir_sun_origin;
 
-	Memcpy(&oldrefdef, &r_newrefdef, sizeof(refdef_t));
-	Memcpy(&refdef, &r_newrefdef, sizeof(refdef_t));
+	memcpy(&oldrefdef, &r_newrefdef, sizeof(refdef_t));
+	memcpy(&refdef, &r_newrefdef, sizeof(refdef_t));
 	R_SaveRenderState();
 ///	r_finish->value = 0;
 
@@ -72365,7 +71031,7 @@ void R_Mirror (mirror_t *mir)
 	glDisable( GL_SCISSOR_TEST );
 
 	R_RestoreRenderState();
-	Memcpy(&r_newrefdef, &oldrefdef, sizeof(refdef_t));
+	memcpy(&r_newrefdef, &oldrefdef, sizeof(refdef_t));
 }
 
 
@@ -72604,8 +71270,8 @@ void R_SetupMirrorFrame(byte *vis)
 	int longs = (r_worldmodel->numleafs+31)>>5;
 	AngleVectors (r_newrefdef.viewangles, vpn, vright, vup);
 
-	Memcpy(vis, &viewvis, longs<<2);
-	Memcpy(&viewvis, CM_ClusterPVS(CM_LeafCluster(CM_PointLeafnum(mirror_plane->chain->center))), longs<<2);
+	memcpy(vis, &viewvis, longs<<2);
+	memcpy(&viewvis, CM_ClusterPVS(CM_LeafCluster(CM_PointLeafnum(mirror_plane->chain->center))), longs<<2);
 
 	for (s = mirror_plane->chain->mirrorchain ; s ; s=s->mirrorchain)
 	{
@@ -72642,7 +71308,7 @@ void R_RestoreFrame(byte *vis)
 	int				i, cluster;
 
 	int longs = (r_worldmodel->numleafs+31)>>5;
-	Memcpy(&viewvis, vis, longs<<2);
+	memcpy(&viewvis, vis, longs<<2);
 
 	r_visframecount++;
 	for (i=0,leaf=r_worldmodel->leafs ; i<r_worldmodel->numleafs ; i++, leaf++)
@@ -72940,7 +71606,7 @@ void Mod_LoadFaces (lump_t *l)
 		// Allocate storage for our edge table
 		tempEdges = (temp_connect_t *)Z_Malloc(currentmodel->numedges * sizeof(temp_connect_t), true);
 ///		// clear tempedges
-///		Memset(tempEdges, 0, currentmodel->numedges * sizeof(temp_connect_t));
+///		memset(tempEdges, 0, currentmodel->numedges * sizeof(temp_connect_t));
 	}
 
 	GL_BeginBuildingLightmaps ();
@@ -73466,8 +72132,8 @@ void R_DrawSkyWorld()
 
 	drawing_sky_world = true;
 
-	Memcpy(&oldrefdef, &r_newrefdef, sizeof(refdef_t));
-	Memcpy(&refdef, &r_newrefdef, sizeof(refdef_t));
+	memcpy(&oldrefdef, &r_newrefdef, sizeof(refdef_t));
+	memcpy(&refdef, &r_newrefdef, sizeof(refdef_t));
 	old_framecount = r_framecount;
 	old_occ_framecount = occ_framecount;
 ///	old_r_finish = r_finish->value;
@@ -73499,7 +72165,7 @@ void R_DrawSkyWorld()
 
 	fps_count = old_fps_count;
 ///	r_finish->value = old_r_finish;
-	Memcpy(&r_newrefdef, &oldrefdef, sizeof(refdef_t));
+	memcpy(&r_newrefdef, &oldrefdef, sizeof(refdef_t));
 	r_framecount = old_framecount;
 	occ_framecount = old_occ_framecount;
 
@@ -74216,7 +72882,7 @@ void R_FreeUnusedMaterials()
 			}
 		}
 		else
-			Memset (material, 0, sizeof(*material));	// free it
+			memset (material, 0, sizeof(*material));	// free it
 	}
 }
 
@@ -75191,7 +73857,7 @@ void S_EndRegistration ()
 				Z_Free (sfx->cache);	// from a server that didn't finish loading
 			if (sfx->truename)
 				Z_Free (sfx->truename); // memleak fix from echon
-			Memset (sfx, 0, sizeof(*sfx));
+			memset (sfx, 0, sizeof(*sfx));
 		}
 		else
 		{	// make sure it is paged in
@@ -75446,7 +74112,7 @@ model_t *R_RegisterModel (char *name, float scale, bool invert)		// scale - for 
 					mod->bumps[i] = mod->lights[i] = NULL;
 					continue;
 				}
-				Memcpy(nam, (char *)pheader + pheader->ofs_skins + i*MAX_SKINNAME, len+1);
+				memcpy(nam, (char *)pheader + pheader->ofs_skins + i*MAX_SKINNAME, len+1);
 				nam[len-4] = 0;
 				mod->skins[i] = GL_FindImage (nam, it_skin, false, 0, false, 0);
 				if(!r_simple->value)
@@ -75510,7 +74176,7 @@ model_t *R_RegisterModel (char *name, float scale, bool invert)		// scale - for 
 					}
 					char nam[MAX_QPATH+16];
 					len = strlen(mesh->img_skins[k]->name);
-					Memcpy(nam, mesh->img_skins[k]->name, len+1);
+					memcpy(nam, mesh->img_skins[k]->name, len+1);
 					mesh->img_skins[k] = GL_FindImage(nam, it_skin, false, 0, false, 0);
 					if(mesh->img_skins[k] && !r_simple->value)
 					{
@@ -75744,7 +74410,7 @@ povtor:		if (!(cc = *text))
 	}
 
 	// baselines
-	Memset (&nullstate, 0, sizeof(nullstate));
+	memset (&nullstate, 0, sizeof(nullstate));
 	for (i=0; i<MAX_EDICTS ; i++)
 	{
 		ent = &cl_entities[i].baseline;
@@ -76661,8 +75327,8 @@ void CL_DeleteDecal_f()
 			p->die = cl.leveltime;
 	defDecal_t	*p;
 	for (p = curdecal; p < &deferred_decals[MAX_DECALS]; p++)
-		Memcpy(p, p+1, sizeof(defDecal_t));
-	Memset(&deferred_decals[MAX_DECALS], 0, sizeof(defDecal_t));
+		memcpy(p, p+1, sizeof(defDecal_t));
+	memset(&deferred_decals[MAX_DECALS], 0, sizeof(defDecal_t));
 	num_deferred_decals--;
 
 	curdecal = NULL;
@@ -76728,7 +75394,7 @@ void CL_CopyDecal_f ()
 	if (!curdecal)
 		return;
 
-	Memcpy(&decal_clipboard, curdecal, sizeof(defDecal_t));
+	memcpy(&decal_clipboard, curdecal, sizeof(defDecal_t));
 	if (!silent_decal)
 		Com_Printf("Decal copied to clipboard.\n");
 }
@@ -77508,7 +76174,7 @@ void CL_Paste_f ()
 			Com_Printf("No labeled brush model selected.\n");
 			return;
 		}
-		Memcpy(link_clipboard.label, bmdl_list[i].label, sizeof(curlink->label));
+		memcpy(link_clipboard.label, bmdl_list[i].label, sizeof(curlink->label));
 		link_clipboard.index = curbrushnum;
 
 		VectorCopy(link_clipboard.color, temp.color);
@@ -77538,7 +76204,7 @@ void CL_Paste_f ()
 		temp.filtercube_start = link_clipboard.filtercube_start;
 		temp.filtercube_end = link_clipboard.filtercube_end;
 		temp.ownerkey = link_clipboard.framerate;
-		Memcpy(temp.label, link_clipboard.label, MAX_QPATH);
+		memcpy(temp.label, link_clipboard.label, MAX_QPATH);
 
 		SpawnLinkedLight(&temp);
 		curlink = &lmdl_list[lightmodel_counter-1];
@@ -77550,7 +76216,7 @@ void CL_Paste_f ()
 		if(!light_clipboard.radius)	// клипбоард пока пуст
 			return;
 
-		Memcpy(&temp, &light_clipboard, sizeof(shadowlight_t));
+		memcpy(&temp, &light_clipboard, sizeof(shadowlight_t));
 		temp.ownerkey = link_clipboard.framerate;
 
 		if (!Q_strcasecmp(Cmd_Argv(0), "paste2camera"))
@@ -77938,9 +76604,9 @@ sintax:		Com_Printf("^3Usage: delete <all> | <notargeted>\n");
 		}
 
 		for(light=curlink; light<&lmdl_list[lightmodel_counter-1]; light++)
-			Memcpy(light, light+1, sizeof(llink_t));
+			memcpy(light, light+1, sizeof(llink_t));
 
-		Memset(&lmdl_list[lightmodel_counter-1], 0, sizeof(llink_t));
+		memset(&lmdl_list[lightmodel_counter-1], 0, sizeof(llink_t));
 		lightmodel_counter--;
 		if(curlink == &lmdl_list[lightmodel_counter])
 		{
@@ -77981,9 +76647,9 @@ sintax:		Com_Printf("^3Usage: delete <all> | <notargeted>\n");
 		}
 
 		for(light=curlight; light<&shadowlights[numStaticShadowLights-1]; light++)
-			Memcpy(light, light+1, sizeof(shadowlight_t));
+			memcpy(light, light+1, sizeof(shadowlight_t));
 
-		Memset(&shadowlights[numStaticShadowLights-1], 0, sizeof(shadowlight_t));
+		memset(&shadowlights[numStaticShadowLights-1], 0, sizeof(shadowlight_t));
 		numShadowLights--;
 		numStaticShadowLights--;
 		if(curlight == &shadowlights[numStaticShadowLights])
@@ -78010,9 +76676,9 @@ void CL_DeleteEmit_f ()
 	emit_t	*emit;
 
 	for(emit=curemit; emit<&emits[numEmits-1]; emit++)
-		Memcpy(emit, emit+1, sizeof(emit_t));
+		memcpy(emit, emit+1, sizeof(emit_t));
 
-	Memset(&emits[numEmits-1], 0, sizeof(emit_t));
+	memset(&emits[numEmits-1], 0, sizeof(emit_t));
 	numEmits--;
 
 	if(curemit == &emits[numEmits])
@@ -78037,7 +76703,7 @@ void CL_Copy_f ()
 		if(!curlink)
 			return;
 
-		Memcpy(&link_clipboard, curlink, sizeof(llink_t));
+		memcpy(&link_clipboard, curlink, sizeof(llink_t));
 		Com_Printf("Linked light copied to clipboard.\n");
 	}
 	else
@@ -78045,7 +76711,7 @@ void CL_Copy_f ()
 		if(!curlight)
 			return;
 
-		Memcpy(&light_clipboard, curlight, sizeof(shadowlight_t));
+		memcpy(&light_clipboard, curlight, sizeof(shadowlight_t));
 		Com_Printf("Static light copied to clipboard.\n");
 	}
 }
@@ -78059,7 +76725,7 @@ void CL_CopyEmit_f ()
 	if(!curemit)
 		return;
 
-	Memcpy(&emit_clipboard, curemit, sizeof(emit_t));
+	memcpy(&emit_clipboard, curemit, sizeof(emit_t));
 	Com_Printf("Emitter copied to clipboard.\n");
 }
 
@@ -78318,7 +76984,7 @@ void CL_LabelEmit_f ()
 		return;
 	}
 
-	Memcpy(curemit->label, bmdl_list[i].label, MAX_QPATH);
+	memcpy(curemit->label, bmdl_list[i].label, MAX_QPATH);
 	curemit->index = curbrushnum;
 
 	VectorSubtract(curemit->origin, currententity->origin, curemit->origin);
@@ -78385,7 +77051,7 @@ void CL_LabelModel_f ()
 		return;
 	}
 
-	Memcpy(curmodel->label, bmdl_list[i].label, MAX_QPATH);
+	memcpy(curmodel->label, bmdl_list[i].label, MAX_QPATH);
 	curmodel->index = curbrushnum;
 
 	VectorSubtract(curmodel->origin, currententity->origin, curmodel->origin);
@@ -78414,7 +77080,7 @@ void CL_PasteEmit_f ()
 		return;
 	}
 
-	Memcpy(l, &emit_clipboard, sizeof(emit_t));
+	memcpy(l, &emit_clipboard, sizeof(emit_t));
 
 	if (!Q_strcasecmp(Cmd_Argv(0), "paste2cameraemit"))
 	{
@@ -78445,7 +77111,7 @@ void CL_PasteCurEmit_f ()
 		return;
 
 	VectorCopy(curemit->origin, bak);
-	Memcpy(curemit, &emit_clipboard, sizeof(emit_t));
+	memcpy(curemit, &emit_clipboard, sizeof(emit_t));
 	VectorCopy(bak, curemit->origin);
 	Cl_UpdateEditorCvars(ED_EMIT | ED_MODIFIED);
 }
@@ -78878,7 +77544,7 @@ void CL_CreateEmit_f()
 	l->alphavel = 0;							// no lifetime override
 	l->gravity = 0;								// no gravity override
 	VectorClear(l->startcolor);					// no color override
-	Memset(l->label, 0, MAX_QPATH);
+	memset(l->label, 0, MAX_QPATH);
 	l->area = CM_LeafArea (CM_PointLeafnum (l->origin));
 	if (!l->area)
 		Com_Printf("^3Emitter is out of BSP!\n");
@@ -79600,7 +78266,7 @@ void CL_CreateFlareLights_f()
 		if (l->surf->ent)
 			continue;
 
-		Memset(&light, 0, sizeof(shadowlight_t));
+		memset(&light, 0, sizeof(shadowlight_t));
 		float	r,g,b,t;
 		r = l->surf->texinfo->image->color[0];
 		g = l->surf->texinfo->image->color[1];
@@ -80834,18 +79500,18 @@ void CL_LightStyle_f ()
 
 	CheckLightStyle(Cmd_Argv(2));
 
-	Memset(lightstyles[num], 0, MAX_QPATH);
-	Memcpy(lightstyles[num], Cmd_Argv(2), MAX_QPATH-1);
+	memset(lightstyles[num], 0, MAX_QPATH);
+	memcpy(lightstyles[num], Cmd_Argv(2), MAX_QPATH-1);
 
 	if (net_compatibility->value)
 	{
-		Memset(cl.configstrings[num+CS_LIGHTS_Q2], 0, MAX_QPATH);
-		Memcpy(cl.configstrings[num+CS_LIGHTS_Q2], Cmd_Argv(2), MAX_QPATH-1);
+		memset(cl.configstrings[num+CS_LIGHTS_Q2], 0, MAX_QPATH);
+		memcpy(cl.configstrings[num+CS_LIGHTS_Q2], Cmd_Argv(2), MAX_QPATH-1);
 	}
 	else
 	{
-		Memset(cl.configstrings[num+CS_LIGHTS_BERS], 0, MAX_QPATH);
-		Memcpy(cl.configstrings[num+CS_LIGHTS_BERS], Cmd_Argv(2), MAX_QPATH-1);
+		memset(cl.configstrings[num+CS_LIGHTS_BERS], 0, MAX_QPATH);
+		memcpy(cl.configstrings[num+CS_LIGHTS_BERS], Cmd_Argv(2), MAX_QPATH-1);
 	}
 	CL_SetLightstyle(num);
 	Com_Printf("LightStyle %i overrided with \"%s\"\n", num, lightstyles[num]);
@@ -80901,7 +79567,7 @@ void CL_Targetname_f ()
 			return;
 		}
 
-		Memcpy(curlight->targetname, Cmd_Argv(1), sizeof(curlight->targetname));
+		memcpy(curlight->targetname, Cmd_Argv(1), sizeof(curlight->targetname));
 		Com_Printf("Targetname changed.\n");
 		Cl_UpdateEditorCvars(ED_LIGHT | ED_MODIFIED);
 	}
@@ -80924,7 +79590,7 @@ void CL_NoiseModel_f ()
 		return;
 	}
 
-	Memcpy(curmodel->sound, Cmd_Argv(1), MAX_QPATH);
+	memcpy(curmodel->sound, Cmd_Argv(1), MAX_QPATH);
 	if (curmodel->sound[0])
 	{
 		if (!strstr (curmodel->sound, ".wav"))
@@ -81258,48 +79924,17 @@ void CL_PrevModel_f ()
 }
 
 
-static inline void MS_memcpy( void *dest, const void *src, size_t count )
-{
-	memcpy(dest, src, count);
-}
-
-static inline void MS_memset( void *dest, const int b, size_t count )
-{
-	memset(dest, b, count);
-}
-
-
-#ifdef ENABLE_ASM
-void M_SelectMath(int it, int size, bool def, bool silent)
-#else
 void M_SelectMath(int it, bool def, bool silent)
-#endif
 {
 	int		i, start, min;
 	int		result[4];		// до 4 версий
 	float	a;
-#ifdef ENABLE_ASM
-	void	*buf0;
-	void	*buf1;
-#endif
 
 	if (def)
 	{	// ставим заведомо работающие версии подпрограмм (на любых CPU)
 		Sqrt = sqrtf;
-#ifdef ENABLE_ASM
-		Memcpy = MS_memcpy;
-		Memset = MS_memset;
-#endif
 		return;
 	}
-
-#ifdef ENABLE_ASM
-	if (size>0)
-	{
-		buf0 = malloc(size);
-		buf1 = malloc(size);
-	}
-#endif
 
 	void (*Printf)(char *fmt, ...);
 	if (silent)
@@ -81333,138 +79968,11 @@ void M_SelectMath(int it, bool def, bool silent)
 		Printf("    Selected fastsqrt\n");
 		Sqrt = fastsqrt;
 	}
-
-// memcpy
-#ifdef ENABLE_ASM
-	start = Sys_Milliseconds ();
-	for (i=0; i<it; i++)
-		MS_memcpy(buf0, buf1, size);
-	result[0] = Sys_Milliseconds()-start;
-	Printf("memcpy %i ms\n", result[0]);
-
-	start = Sys_Milliseconds ();
-	for (i=0; i<it; i++)
-		Memcpy(buf0, buf1, size);
-	result[1] = Sys_Milliseconds()-start;
-	Printf("Com_Memcpy %i ms\n", result[1]);
-
-#ifdef _MSC_VER
-	if (cpu_mmx)
-	{
-		start = Sys_Milliseconds ();
-		for (i=0; i<it; i++)
-			MMX_Memcpy(buf0, buf1, size);
-		result[2] = Sys_Milliseconds()-start;
-		Printf("MMX_Memcpy %i ms\n", result[2]);
-	}
-	else
-#endif
-	{
-		result[2] = 0x7fffffff;
-		Printf("MMX_Memcpy ignored\n");
-	}
-
-#ifdef _MSC_VER
-	if (cpu_3dnow)
-	{
-		start = Sys_Milliseconds ();
-		for (i=0; i<it; i++)
-			AMD_Memcpy(buf0, buf1, size);
-		result[3] = Sys_Milliseconds()-start;
-		Printf("AMD_Memcpy %i ms\n", result[3]);
-	}
-	else
-#endif
-	{
-		result[3] = 0x7fffffff;
-		Printf("AMD_Memcpy ignored\n");
-	}
-
-	min = min(result[0], min(result[1], min(result[2], result[3])));
-	if (min == result[0])
-	{
-		Printf("    Selected memcpy\n");
-		Memcpy = MS_memcpy;
-	}
-	else if (min == result[1])
-	{
-		Printf("    Selected Com_Memcpy\n");
-		Memcpy = Com_Memcpy;
-	}
-	else if (min == result[2])
-	{
-		Printf("    Selected MMX_Memcpy\n");
-		Memcpy = MMX_Memcpy;
-	}
-	else
-	{
-		Printf("    Selected AMD_Memcpy\n");
-		Memcpy = AMD_Memcpy;
-	}
-
-// memset
-	start = Sys_Milliseconds ();
-	for (i=0; i<it; i++)
-		MS_memset(buf0, 0, size);
-	result[0] = Sys_Milliseconds()-start;
-	Printf("memset %i ms\n", result[0]);
-
-	start = Sys_Milliseconds ();
-	for (i=0; i<it; i++)
-		Com_Memset(buf0, 0, size);
-	result[1] = Sys_Milliseconds()-start;
-	Printf("Com_Memset %i ms\n", result[1]);
-
-#ifdef _MSC_VER
-	if (cpu_mmx)
-	{
-		start = Sys_Milliseconds ();
-		for (i=0; i<it; i++)
-			MMX_Memset(buf0, 0, size);
-		result[2] = Sys_Milliseconds()-start;
-		Printf("MMX_Memset %i ms\n", result[2]);
-	}
-	else
-#endif
-	{
-		result[2] = 0x7fffffff;
-		Printf("MMX_Memset ignored\n");
-	}
-
-	min = min(result[0], min(result[1], result[2]));
-	if (min == result[0])
-	{
-		Printf("    Selected memset\n");
-		Memset = MS_memset;
-	}
-	else if (min == result[1])
-	{
-		Printf("    Selected Com_Memset\n");
-		Memset = Com_Memset;
-	}
-	else
-	{
-		Printf("    Selected MMX_Memset\n");
-		Memset = MMX_Memset;
-	}
-#endif
-
-#ifdef ENABLE_ASM
-	if (size>0)
-	{
-		free (buf0);
-		free (buf1);
-	}
-#endif
 }
 
 void Com_MathTest_f ()
 {
-#ifdef ENABLE_ASM
-	M_SelectMath(128, 1024*1024, false, false);		// benchmark and set progs
-#else
-	M_SelectMath(128, false, false);
-#endif
+	M_SelectMath(128, false, false);		// benchmark and set progs
 }
 
 
@@ -81624,9 +80132,9 @@ void CL_DeleteFog_f()
 	fog_t	*fog;
 
 	for(fog=curfog; fog<&fog_infos[numFogs-1]; fog++)
-		Memcpy(fog, fog+1, sizeof(fog_t));
+		memcpy(fog, fog+1, sizeof(fog_t));
 
-	Memset(&fog_infos[numFogs-1], 0, sizeof(fog_t));
+	memset(&fog_infos[numFogs-1], 0, sizeof(fog_t));
 	numFogs--;
 
 	if(curfog == &fog_infos[numFogs])
@@ -81977,7 +80485,7 @@ void CL_CopyModel_f ()
 	if(!curmodel)
 		return;
 
-	Memcpy(&model_clipboard, curmodel, sizeof(alink_t));
+	memcpy(&model_clipboard, curmodel, sizeof(alink_t));
 	if (!silent_model)
 		Com_Printf("Model copied to clipboard.\n");
 	Cl_UpdateEditorCvars(ED_MODEL | ED_MODIFIED);
@@ -81996,9 +80504,9 @@ void CL_DeleteModel_f()
 		if (&amdl_list[am] == curmodel)
 		{
 			if (aliasmodel_counter-am-1)
-				Memcpy(curmodel, &amdl_list[am+1], sizeof(alink_t)*(aliasmodel_counter-am-1));
+				memcpy(curmodel, &amdl_list[am+1], sizeof(alink_t)*(aliasmodel_counter-am-1));
 			aliasmodel_counter--;
-			Memset(&amdl_list[aliasmodel_counter], 0, sizeof(alink_t));
+			memset(&amdl_list[aliasmodel_counter], 0, sizeof(alink_t));
 			if (!silent_model)
 				Com_Printf("Model deleted.\n");
 			if (aliasmodel_counter)
@@ -82039,7 +80547,7 @@ void CL_PasteModel_f ()
 		return;
 	}
 
-	Memcpy(m, &model_clipboard, sizeof(alink_t));
+	memcpy(m, &model_clipboard, sizeof(alink_t));
 
 	curmodel = m;
 	if (!Q_strcasecmp(Cmd_Argv(0), "paste2cameramodel"))
@@ -82153,7 +80661,7 @@ void CL_CreateModel_f()
 
 	VectorCopy(cl.refdef.vieworg, m->origin);
 	VectorCopy(cl.refdef.viewangles, m->angles);
-	Memcpy(m->model, Cmd_Argv(1), MAX_QPATH);
+	memcpy(m->model, Cmd_Argv(1), MAX_QPATH);
 	m->label[0] = ' ';	// чисто "пустой" линк, чтоб сервер игнорировал модель
 	m->label[1] = 0;
 	m->mdl = mdl;
@@ -82195,7 +80703,7 @@ void CL_ChangeModel_f()
 	if (!mdl)
 		return;
 
-	Memcpy(curmodel->model, Cmd_Argv(1), MAX_QPATH);
+	memcpy(curmodel->model, Cmd_Argv(1), MAX_QPATH);
 	curmodel->mdl = mdl;
 	curmodel->frame = curmodel->skinnum = curmesh = curtri = 0;
 
@@ -83121,7 +81629,7 @@ sfx_t *S_FindName (char *name, bool create, unsigned lockTime)
 	}
 
 	sfx = &known_sfx[i];
-	Memset (sfx, 0, sizeof(*sfx));
+	memset (sfx, 0, sizeof(*sfx));
 	strcpy (sfx->name, name);
 	sfx->hash = hash;
 	sfx->lockMSecs = lockTime;
@@ -83202,7 +81710,7 @@ wavinfo_t GetWavinfo (char *name, byte *wav, int wavlength)
 	int     format;
 	int		samples;
 
-	Memset (&info, 0, sizeof(info));
+	memset (&info, 0, sizeof(info));
 
 	if (!wav)
 		return info;
@@ -83461,7 +81969,7 @@ sfx_t *S_AliasName (char *aliasname, char *truename)
 	}
 
 	sfx = &known_sfx[i];
-	Memset (sfx, 0, sizeof(*sfx));
+	memset (sfx, 0, sizeof(*sfx));
 	strcpy (sfx->name, aliasname);
 	sfx->hash = Com_HashKey(sfx->name);
 	sfx->lockMSecs = 0;
@@ -83717,7 +82225,7 @@ void S_Shutdown()
 			Z_Free (sfx->cache);
 		if (sfx->truename)
 			Z_Free (sfx->truename); // memleak fix from echon (R1CH and Echon, fix it in your S_Shutdown())
-		Memset (sfx, 0, sizeof(*sfx));
+		memset (sfx, 0, sizeof(*sfx));
 	}
 
 	num_sfx = 0;
@@ -83760,7 +82268,7 @@ void S_ClearBuffer ()
 
 	SNDDMA_BeginPainting ();
 	if (dma.buffer)
-		Memset(dma.buffer, 0, dma.samples * 2);
+		memset(dma.buffer, 0, dma.samples * 2);
 	SNDDMA_Submit ();
 }
 
@@ -83773,7 +82281,7 @@ void S_StopAllSounds()
 		return;
 
 	// clear all the playsounds
-	Memset(s_playsounds, 0, sizeof(s_playsounds));
+	memset(s_playsounds, 0, sizeof(s_playsounds));
 	s_freeplays.next = s_freeplays.prev = &s_freeplays;
 	s_pendingplays.next = s_pendingplays.prev = &s_pendingplays;
 
@@ -83786,7 +82294,7 @@ void S_StopAllSounds()
 	}
 
 	// clear all the channels
-	Memset(channels, 0, sizeof(channels));
+	memset(channels, 0, sizeof(channels));
 
 	// stop the background music
 	S_StopBackgroundTrack();
@@ -83877,14 +82385,14 @@ void SDL_SoundCallback(void* userdata, Uint8* stream, int len)
 	int wrapped = pos + len - size;
 	if (wrapped < 0)
 	{
-		Memcpy(stream, dma.buffer + pos, len);
+		memcpy(stream, dma.buffer + pos, len);
 		dma.samplepos += len >> 1;
 	}
 	else
 	{
 		int remaining = size - pos;
-		Memcpy(stream, dma.buffer + pos, remaining);
-		Memcpy(stream + remaining, dma.buffer, wrapped);
+		memcpy(stream, dma.buffer + pos, remaining);
+		memcpy(stream + remaining, dma.buffer, wrapped);
 		dma.samplepos = wrapped >> 1;
 	}
 }
@@ -84073,7 +82581,7 @@ void M_DrawCursor( int x, int y )
 	char		scratch[MAX_QPATH];
 	int			old, old2;
 
-	Memset(&entity, 0, sizeof(entity));
+	memset(&entity, 0, sizeof(entity));
 
 	Com_sprintf (scratch, sizeof(scratch), "models/hud/p_quad.md2");
 	entity.model = R_RegisterModel(scratch, 1, false);
@@ -84084,9 +82592,9 @@ void M_DrawCursor( int x, int y )
 		entity.bump = R_RegisterBump(scratch, entity.skin, entity.model);
 		entity.light = R_RegisterLight(scratch);
 
-		Memset(&refdef, 0, sizeof(refdef));
+		memset(&refdef, 0, sizeof(refdef));
 		currentshadowlight = &m_light;
-		Memset(currentshadowlight, 0, sizeof(shadowlight_t));
+		memset(currentshadowlight, 0, sizeof(shadowlight_t));
 
 		int x0 = x-11;
 		int y0 = y-3;
@@ -84549,9 +83057,9 @@ void Create_Demosstrings (int mask)
 	bool			exit = false;
 
 	// init
-	Memset(m_demos, 0, sizeof(char)*MAX_DEMOS*(MAX_QPATH+1));
-	Memset(m_demosvalid, 0, sizeof(bool)*MAX_DEMOS);
-	Memset(m_demos_short, 0, sizeof(char)*MAX_DEMOS*(MAX_DEMO_NAMELEN+1));
+	memset(m_demos, 0, sizeof(char)*MAX_DEMOS*(MAX_QPATH+1));
+	memset(m_demosvalid, 0, sizeof(bool)*MAX_DEMOS);
+	memset(m_demos_short, 0, sizeof(char)*MAX_DEMOS*(MAX_DEMO_NAMELEN+1));
 
 	if (net_compatibility->value)
 	{
@@ -84585,7 +83093,7 @@ void Create_Demosstrings (int mask)
 							{
 								if(!b_stricmp(ZipCache[i].pak_name, pak->filename))
 								{
-									Memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
+									memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
 									goto clc;
 								}
 							}
@@ -84602,7 +83110,7 @@ void Create_Demosstrings (int mask)
 					strcpy(&ZipCache[slot].pak_name[0], pak->filename);	// Если не нашли zip в кэше, откроем его...
 					if (!PackFileOpen (&ZipCache[slot]))
 						Com_Error(ERR_FATAL, "Error opening pk2-file: %s", pak->filename);
-					Memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
+					memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
 					goto clc2;
 clc:				slot = i;
 clc2:				for(i=0; i<pf.gi.number_entry; i++)
@@ -84610,7 +83118,7 @@ clc2:				for(i=0; i<pf.gi.number_entry; i++)
 						if(pf.fi[i].size)
 						{
 							char	nam[256];
-							Memcpy(nam, pf.fi[i].name, 256);
+							memcpy(nam, pf.fi[i].name, 256);
 							if(!Q_strncasecmp(nam, "demos/", 6))
 							{
 								if(!Q_strcasecmp(nam+strlen(nam)-4, str_dm))
@@ -84639,7 +83147,7 @@ clc2:				for(i=0; i<pf.gi.number_entry; i++)
 					for (i=0 ; i<pak->numfiles ; i++)
 					{
 						char	nam[256];
-						Memcpy(nam, pak->files[i].name, 256);
+						memcpy(nam, pak->files[i].name, 256);
 						if(!Q_strncasecmp(nam, "demos/", 6))
 						{
 							if(!Q_strcasecmp(nam+strlen(nam)-4, str_dm))
@@ -86957,7 +85465,7 @@ again:		if (i + 2 < length)			/// Berserker: игнорируем пустые �
 		Com_Error( ERR_DROP, "no maps in maps.lst" );
 
 	mapnames = (char **) Z_Malloc( sizeof( char * ) * ( nummaps + 1 ), true );
-///	Memset( mapnames, 0, sizeof( char * ) * ( nummaps + 1 ) );
+///	memset( mapnames, 0, sizeof( char * ) * ( nummaps + 1 ) );
 
 	s = buffer;
 
@@ -87685,7 +86193,7 @@ bool PlayerConfig_MenuInit()
 
 	qsort( s_pmi, s_numplayermodels, sizeof( s_pmi[0] ), pmicmpfnc );
 
-	Memset( s_pmnames, 0, sizeof( s_pmnames ) );
+	memset( s_pmnames, 0, sizeof( s_pmnames ) );
 	for ( i = 0; i < s_numplayermodels; i++ )
 	{
 		s_pmnames[i] = s_pmi[i].displayname;
@@ -89086,7 +87594,7 @@ void M_LoadMapNames()
 	num_maps = Create_Mapsstrings(3);
 
 	map_names = (char **) Z_Malloc( sizeof( char * ) * ( num_maps + 1 ), true );
-///	Memset( map_names, 0, sizeof( char * ) * ( num_maps + 1 ) );
+///	memset( map_names, 0, sizeof( char * ) * ( num_maps + 1 ) );
 
 	for ( i = 0; i < num_maps; i++ )
 	{
@@ -90095,7 +88603,7 @@ called to open a channel to a remote system
 */
 void Netchan_Setup (netsrc_t sock, netchan_t *chan, netadr_t adr, int qport)
 {
-	Memset (chan, 0, sizeof(*chan));
+	memset (chan, 0, sizeof(*chan));
 
 	chan->sock = sock;
 	chan->remote_address = adr;
@@ -90287,7 +88795,7 @@ void SVC_DirectConnect ()
 	}
 
 	newcl = &temp;
-	Memset (newcl, 0, sizeof(client_t));
+	memset (newcl, 0, sizeof(client_t));
 
 	// if there is already a slot for this ip, reuse it
 	for (i=0,cl=svs.clients ; i<maxclients->value ; i++,cl++)
@@ -90665,7 +89173,7 @@ byte	COM_BlockSequenceCRCByte (byte *base, int length, int sequence)
 
 	if (length > 60)
 		length = 60;
-	Memcpy (chkb, base, length);
+	memcpy (chkb, base, length);
 
 	chkb[length] = p[0];
 	chkb[length+1] = p[1];
@@ -90795,7 +89303,7 @@ void SV_New_f ()
 		ent = EDICT_NUM(playernum+1);
 		ent->s.number = playernum+1;
 		sv_client->edict = ent;
-		Memset (&sv_client->lastcmd, 0, sizeof(sv_client->lastcmd));
+		memset (&sv_client->lastcmd, 0, sizeof(sv_client->lastcmd));
 
 		// begin fetching configstrings
 		MSG_WriteByte (&sv_client->netchan.message, svc_stufftext);
@@ -90942,7 +89450,7 @@ void SV_Baselines_f ()
 		return;
 	}
 
-	Memset (&nullstate, 0, sizeof(nullstate));
+	memset (&nullstate, 0, sizeof(nullstate));
 
 	// write a packet full of data
 	while ( sv_client->netchan.message.cursize <  MAX_MSGLEN/2 && start < MAX_EDICTS)
@@ -91228,7 +89736,7 @@ void SV_ExecuteClientMessage (client_t *cl)
 				}
 			}
 
-			Memset (&nullcmd, 0, sizeof(nullcmd));
+			memset (&nullcmd, 0, sizeof(nullcmd));
 			MSG_ReadDeltaUsercmd (&net_message, &nullcmd, &oldest);
 			if (net_message.readcount > net_message.cursize)		// r1ch
 			{
@@ -91536,11 +90044,11 @@ int CM_WriteAreaBits (byte *buffer, int area)
 
 	if (map_noareas->value)
 	{	// for debugging, send everything
-		Memset (buffer, 255, bytes);
+		memset (buffer, 255, bytes);
 	}
 	else
 	{
-		Memset (buffer, 0, bytes);
+		memset (buffer, 0, bytes);
 
 		floodnum = map_areas[area].floodnum;
 		for (i=0 ; i<numareas ; i++)
@@ -91586,7 +90094,7 @@ void SV_FatPVS (vec3_t org)
 	for (i=0 ; i<count ; i++)
 		leafs[i] = CM_LeafCluster(leafs[i]);
 
-	Memcpy (fatpvs, CM_ClusterPVS(leafs[0]), longs<<2);
+	memcpy (fatpvs, CM_ClusterPVS(leafs[0]), longs<<2);
 	// or in all the other leaf bits
 	for (i=1 ; i<count ; i++)
 	{
@@ -92017,7 +90525,7 @@ void SV_RecordDemoMessage ()
 	if (!svs.demofile)
 		return;
 
-	Memset (&nostate, 0, sizeof(nostate));
+	memset (&nostate, 0, sizeof(nostate));
 	SZ_Init (&buf, buf_data, sizeof(buf_data));
 
 	// write a frame message that doesn't contain a player_state_t
@@ -93076,7 +91584,7 @@ explosion_t *CL_AllocExplosion ()
 	{
 		if (cl_explosions[i].type == ex_free)
 		{
-			Memset (&cl_explosions[i], 0, sizeof (cl_explosions[i]));
+			memset (&cl_explosions[i], 0, sizeof (cl_explosions[i]));
 			return &cl_explosions[i];
 		}
 	}
@@ -93090,7 +91598,7 @@ explosion_t *CL_AllocExplosion ()
 			time = cl_explosions[i].start;
 			index = i;
 		}
-	Memset (&cl_explosions[index], 0, sizeof (cl_explosions[index]));
+	memset (&cl_explosions[index], 0, sizeof (cl_explosions[index]));
 	return &cl_explosions[index];
 }
 
@@ -93347,7 +91855,7 @@ void CL_ParseBaseline ()
 	int				newnum;
 	entity_state_t	nullstate;
 
-	Memset (&nullstate, 0, sizeof(nullstate));
+	memset (&nullstate, 0, sizeof(nullstate));
 
 	newnum = CL_ParseEntityBits (&bits);
 	cent = &cl_entities[newnum];
@@ -95729,7 +94237,7 @@ void CL_BaseMove (usercmd_t *cmd)
 {
 	CL_AdjustAngles ();
 
-	Memset (cmd, 0, sizeof(*cmd));
+	memset (cmd, 0, sizeof(*cmd));
 
 	VectorCopy (cl.viewangles, cmd->angles);
 
@@ -96013,7 +94521,7 @@ buf.data = NULL;	// quiet compiler warning
 	// if the last packet was dropped, it can be recovered
 	i = (cls.netchan.outgoing_sequence-2) & (CMD_BACKUP-1);
 	cmd = &cl.cmds[i];
-	Memset (&nullcmd, 0, sizeof(nullcmd));
+	memset (&nullcmd, 0, sizeof(nullcmd));
 	MSG_WriteDeltaUsercmd (&buf, &nullcmd, cmd);
 	oldcmd = cmd;
 
@@ -96327,7 +94835,7 @@ void CL_PredictMovement ()
 	}
 
 	// copy current state to pmove
-	Memset (&pm, 0, sizeof(pm));
+	memset (&pm, 0, sizeof(pm));
 	pm.trace = CL_PMTrace;
 	pm.pointcontents = CL_PMpointcontents;
 
@@ -96446,7 +94954,7 @@ float ParseSP3frames(model_t *mod, dsprite2_t *sprout, char *s, float *sc, int *
 			continue;
 		}
 
-		Memcpy(sprout->frames[i].name, token, strlen(token));
+		memcpy(sprout->frames[i].name, token, strlen(token));
 		sprout->frames[i].skin = GL_FindImage (sprout->frames[i].name, it_sprite, false, 0, false, 0);	/// !!! Для спрайтов не бывает бампа!!!
 		// не нашли, попробуем взять шкуру используя путь до спрайта
 		if (!sprout->frames[i].skin)
@@ -97159,7 +95667,7 @@ void CL_RegisterTEntModels ()
 						{
 							if(!b_stricmp(ZipCache[i].pak_name, pak->filename))
 							{
-								Memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
+								memcpy(&pf, &ZipCache[i], sizeof(zipfile_t));		// Нашли уже открытый ZIP и загрузили его описатель в pf
 								goto clc;
 							}
 						}
@@ -97176,7 +95684,7 @@ void CL_RegisterTEntModels ()
 				strcpy(&ZipCache[slot].pak_name[0], pak->filename);	// Если не нашли zip в кэше, откроем его...
 				if (!PackFileOpen (&ZipCache[slot]))
 					Com_Error(ERR_FATAL, "Error opening pk2-file: %s", pak->filename);
-				Memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
+				memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));
 				goto clc2;
 clc:			slot = i;
 clc2:			for(i=0; i<pf.gi.number_entry; i++)
@@ -97184,7 +95692,7 @@ clc2:			for(i=0; i<pf.gi.number_entry; i++)
 					if(pf.fi[i].size)
 					{
 						char	nam[256];
-						Memcpy(nam, pf.fi[i].name, 256);
+						memcpy(nam, pf.fi[i].name, 256);
 						if(!Q_strncasecmp(nam, "models/hud/", 11))
 						{
 							if(!Q_strcasecmp(nam+strlen(nam)-4, ".md2") || !Q_strcasecmp(nam+strlen(nam)-4, ".md3"))
@@ -97192,7 +95700,7 @@ clc2:			for(i=0; i<pf.gi.number_entry; i++)
 								model_t *model = R_RegisterModel(nam, 1, false);
 								if (model)
 									model->flags &= ~RF_DISTORT;
-								Memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));	// восстановим PF, ибо он портится при регистрации модели (вызов ZIP)
+								memcpy(&pf, &ZipCache[slot], sizeof(zipfile_t));	// восстановим PF, ибо он портится при регистрации модели (вызов ZIP)
 								Com_DPrintf("3D hud model: %s/%s\n", pf.pak_name, pf.fi[i].name);
 							}
 						}
@@ -97205,7 +95713,7 @@ clc2:			for(i=0; i<pf.gi.number_entry; i++)
 				for (i=0 ; i<pak->numfiles ; i++)
 				{
 					char	nam[256];
-					Memcpy(nam, pak->files[i].name, 256);
+					memcpy(nam, pak->files[i].name, 256);
 					if(!Q_strncasecmp(nam, "models/hud/", 11))
 					{
 						if(!Q_strcasecmp(nam+strlen(nam)-4, ".md2") || !Q_strcasecmp(nam+strlen(nam)-4, ".md3"))
@@ -97314,7 +95822,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 		Com_sprintf (skin_filename, sizeof(skin_filename), "players/male/grunt");
 		Com_sprintf (ci->iconname, sizeof(ci->iconname), "/players/male/grunt_i");
 		ci->model = R_RegisterModel (model_filename, 1, false);
-		Memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
+		memset(ci->weaponmodel, 0, sizeof(ci->weaponmodel));
 		ci->weaponmodel[0] = R_RegisterModel (weapon_filename, 1, false);
 		ci->skin = R_RegisterSkin (skin_filename);
 		ci->bump = R_RegisterBump (skin_filename, ci->skin, ci->model);
@@ -97661,7 +96169,7 @@ channel_t *S_PickChannel(int entnum, int entchannel)
 		return NULL;
 
 	ch = &channels[first_to_die];
-	Memset (ch, 0, sizeof(*ch));
+	memset (ch, 0, sizeof(*ch));
 
     return ch;
 }
@@ -97996,7 +96504,7 @@ void S_PaintChannels(int endtime)
 		// clear the paint buffer
 		if (s_rawend < paintedtime)
 		{
-			Memset(paintbuffer, 0, (end - paintedtime) * sizeof(portable_samplepair_t));
+			memset(paintbuffer, 0, (end - paintedtime) * sizeof(portable_samplepair_t));
 		}
 		else
 		{	// copy from the streaming sound source
@@ -98156,13 +96664,13 @@ void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 			continue;
 		if (ch->autosound)
 		{	// autosounds are regenerated fresh each frame
-			Memset (ch, 0, sizeof(*ch));
+			memset (ch, 0, sizeof(*ch));
 			continue;
 		}
 		S_Spatialize(ch);         // respatialize channel
 		if (!ch->leftvol && !ch->rightvol)
 		{
-			Memset (ch, 0, sizeof(*ch));
+			memset (ch, 0, sizeof(*ch));
 			continue;
 		}
 	}
@@ -98304,567 +96812,18 @@ void CL_Frame (int msec)
 }
 
 
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-void MMX_Memcpy8B( void *dest, const void *src, size_t count )
-{
-
-	_asm
-	{
-		mov esi, src
-		mov edi, dest
-		mov ecx, count
-		shr ecx, 3			// 8 bytes per iteration
-loop1:
-		movq mm1, [ESI]		// Read in source data
-		movntq [EDI], mm1	// Non-temporal stores
-
-		add esi, 8
-		add edi, 8
-		dec ecx
-		jnz loop1
-		emms
-	}
-}
-#endif
-#endif
-
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-void MMX_Memcpy64B( void *dest, const void *src, size_t count )
-{
-	_asm
-	{
-		mov esi, src
-		mov edi, dest
-		mov ecx, count
-		shr ecx, 6			// 64 bytes per iteration
-loop1:
-		prefetchnta 64[ESI]	// Prefetch next loop, non-temporal
-		prefetchnta 96[ESI]
-
-		movq mm1, [ESI]		// Read in source data
-		movq mm2, 8[ESI]
-		movq mm3, 16[ESI]
-		movq mm4, 24[ESI]
-		movq mm5, 32[ESI]
-		movq mm6, 40[ESI]
-		movq mm7, 48[ESI]
-		movq mm0, 56[ESI]
-
-		movntq [EDI], mm1	// Non-temporal stores
-		movntq 8[EDI], mm2
-		movntq 16[EDI], mm3
-		movntq 24[EDI], mm4
-		movntq 32[EDI], mm5
-		movntq 40[EDI], mm6
-		movntq 48[EDI], mm7
-		movntq 56[EDI], mm0
-
-		add esi, 64
-		add edi, 64
-		dec ecx
-		jnz loop1
-		emms
-	}
-}
-#endif
-#endif
-
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-void MMX_Memcpy2kB( void *dest, const void *src, size_t count )
-{
-	byte buf[2048];
-	byte *tbuf = &buf[0];
-	__asm
-	{
-		push ebx
-		mov esi, src
-		mov ebx, count
-		shr ebx, 11				// 2048 bytes at a time
-		mov edi, dest
-loop2k:
-		push edi				// copy 2k into temporary buffer
-		mov edi, tbuf
-		mov ecx, 32
-loopMemToL1:
-		prefetchnta 64[ESI]		// Prefetch next loop, non-temporal
-		prefetchnta 96[ESI]
-
-		movq mm1, [ESI]			// Read in source data
-		movq mm2, 8[ESI]
-		movq mm3, 16[ESI]
-		movq mm4, 24[ESI]
-		movq mm5, 32[ESI]
-		movq mm6, 40[ESI]
-		movq mm7, 48[ESI]
-		movq mm0, 56[ESI]
-
-		movq [EDI], mm1			// Store into L1
-		movq 8[EDI], mm2
-		movq 16[EDI], mm3
-		movq 24[EDI], mm4
-		movq 32[EDI], mm5
-		movq 40[EDI], mm6
-		movq 48[EDI], mm7
-		movq 56[EDI], mm0
-		add esi, 64
-		add edi, 64
-		dec ecx
-		jnz loopMemToL1
-
-		pop edi					// Now copy from L1 to system memory
-		push esi
-		mov esi, tbuf
-		mov ecx, 32
-loopL1ToMem:
-		movq mm1, [ESI]			// Read in source data from L1
-		movq mm2, 8[ESI]
-		movq mm3, 16[ESI]
-		movq mm4, 24[ESI]
-		movq mm5, 32[ESI]
-		movq mm6, 40[ESI]
-		movq mm7, 48[ESI]
-		movq mm0, 56[ESI]
-
-		movntq [EDI], mm1		// Non-temporal stores
-		movntq 8[EDI], mm2
-		movntq 16[EDI], mm3
-		movntq 24[EDI], mm4
-		movntq 32[EDI], mm5
-		movntq 40[EDI], mm6
-		movntq 48[EDI], mm7
-		movntq 56[EDI], mm0
-
-		add esi, 64
-		add edi, 64
-		dec ecx
-		jnz loopL1ToMem
-
-		pop esi					// Do next 2k block
-		dec ebx
-		jnz loop2k
-		pop ebx
-		emms
-	}
-}
-#endif
-#endif
-
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-void MMX_Memcpy( void *dest0, const void *src0, size_t count0 )
-{
-	// if copying more than 16 bytes and we can copy 8 byte aligned
-	if ( count0 > 16 && !( ( (int)dest0 ^ (int)src0 ) & 7 ) )
-	{
-		byte *dest = (byte *)dest0;
-		byte *src = (byte *)src0;
-		// copy up to the first 8 byte aligned boundary
-		int count = ((int)dest) & 7;
-		memcpy( dest, src, count );
-		dest += count;
-		src += count;
-		count = count0 - count;
-		// if there are multiple blocks of 2kB
-		if ( count & ~4095 )
-		{
-			MMX_Memcpy2kB( dest, src, count );
-			src += (count & ~2047);
-			dest += (count & ~2047);
-			count &= 2047;
-		}
-		// if there are blocks of 64 bytes
-		if ( count & ~63 )
-		{
-			MMX_Memcpy64B( dest, src, count );
-			src += (count & ~63);
-			dest += (count & ~63);
-			count &= 63;
-		}
-
-		// if there are blocks of 8 bytes
-		if ( count & ~7 )
-		{
-			MMX_Memcpy8B( dest, src, count );
-			src += (count & ~7);
-			dest += (count & ~7);
-			count &= 7;
-		}
-		// copy any remaining bytes
-		memcpy( dest, src, count );
-	}
-	else
-	{
-		// use the regular one if we cannot copy 8 byte aligned
-		memcpy( dest0, src0, count0 );
-	}
-}
-#endif
-#endif
-
-
-// Very optimized memcpy() routine for all AMD Athlon and Duron family.
-// This code uses any of FOUR different basic copy methods, depending
-// on the transfer size.
-// NOTE:  Since this code uses MOVNTQ (also known as "Non-Temporal MOV" or
-// "Streaming Store"), and also uses the software prefetchnta instructions,
-// be sure you're running on Athlon/Duron or other recent CPU before calling!
-
-#define TINY_BLOCK_COPY 64       // upper limit for movsd type copy
-// The smallest copy uses the X86 "movsd" instruction, in an optimized
-// form which is an "unrolled loop".
-
-#define IN_CACHE_COPY 64 * 1024  // upper limit for movq/movq copy w/SW prefetch
-// Next is a copy that uses the MMX registers to copy 8 bytes at a time,
-// also using the "unrolled loop" optimization.   This code uses
-// the software prefetch instruction to get the data into the cache.
-
-#define UNCACHED_COPY 197 * 1024 // upper limit for movq/movntq w/SW prefetch
-// For larger blocks, which will spill beyond the cache, it's faster to
-// use the Streaming Store instruction MOVNTQ.   This write instruction
-// bypasses the cache and writes straight to main memory.  This code also
-// uses the software prefetch instruction to pre-read the data.
-// USE 64 * 1024 FOR THIS VALUE IF YOU'RE ALWAYS FILLING A "CLEAN CACHE"
-
-#define BLOCK_PREFETCH_COPY  infinity // no limit for movq/movntq w/block prefetch
-#define CACHEBLOCK 80h // number of 64-byte blocks (cache lines) for block prefetch
-// For the largest size blocks, a special technique called Block Prefetch
-// can be used to accelerate the read operations.   Block Prefetch reads
-// one address per cache line, for a series of cache lines, in a short loop.
-// This is faster than using software prefetch.  The technique is great for
-// getting maximum read bandwidth, especially in DDR memory systems.
-
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-void AMD_Memcpy( void *dest, const void *src, size_t n )
-{
-	__asm
-	{
-		mov		ecx, [n]					// number of bytes to copy
-		mov		edi, [dest]					// destination
-		mov		esi, [src]					// source
-		mov		ebx, ecx					// keep a copy of count
-
-		cld
-		cmp		ecx, TINY_BLOCK_COPY
-		jb		$memcpy_ic_3				// tiny? skip mmx copy
-
-		cmp		ecx, 32*1024				// don't align between 32k-64k because
-		jbe		$memcpy_do_align			//  it appears to be slower
-		cmp		ecx, 64*1024
-		jbe		$memcpy_align_done
-$memcpy_do_align:
-		mov		ecx, 8						// a trick that's faster than rep movsb...
-		sub		ecx, edi					// align destination to qword
-		and		ecx, 111b					// get the low bits
-		sub		ebx, ecx					// update copy count
-		neg		ecx							// set up to jump into the array
-		add		ecx, offset $memcpy_align_done
-		jmp		ecx							// jump to array of movsb's
-
-align 4
-		movsb
-		movsb
-		movsb
-		movsb
-		movsb
-		movsb
-		movsb
-		movsb
-
-$memcpy_align_done:						// destination is dword aligned
-		mov		ecx, ebx					// number of bytes left to copy
-		shr		ecx, 6						// get 64-byte block count
-		jz		$memcpy_ic_2				// finish the last few bytes
-
-		cmp		ecx, IN_CACHE_COPY/64		// too big 4 cache? use uncached copy
-		jae		$memcpy_uc_test
-
-// This is small block copy that uses the MMX registers to copy 8 bytes
-// at a time.  It uses the "unrolled loop" optimization, and also uses
-// the software prefetch instruction to get the data into the cache.
-align 16
-$memcpy_ic_1:							// 64-byte block copies, in-cache copy
-
-		prefetchnta [esi + (200*64/34+192)]	// start reading ahead
-
-		movq	mm0, [esi+0]				// read 64 bits
-		movq	mm1, [esi+8]
-		movq	[edi+0], mm0				// write 64 bits
-		movq	[edi+8], mm1				//    note:  the normal movq writes the
-		movq	mm2, [esi+16]				//    data to cache; a cache line will be
-		movq	mm3, [esi+24]				//    allocated as needed, to store the data
-		movq	[edi+16], mm2
-		movq	[edi+24], mm3
-		movq	mm0, [esi+32]
-		movq	mm1, [esi+40]
-		movq	[edi+32], mm0
-		movq	[edi+40], mm1
-		movq	mm2, [esi+48]
-		movq	mm3, [esi+56]
-		movq	[edi+48], mm2
-		movq	[edi+56], mm3
-
-		add		esi, 64						// update source pointer
-		add		edi, 64						// update destination pointer
-		dec		ecx							// count down
-		jnz		$memcpy_ic_1				// last 64-byte block?
-
-$memcpy_ic_2:
-		mov		ecx, ebx					// has valid low 6 bits of the byte count
-$memcpy_ic_3:
-		shr		ecx, 2						// dword count
-		and		ecx, 1111b					// only look at the "remainder" bits
-		neg		ecx							// set up to jump into the array
-		add		ecx, offset $memcpy_last_few
-		jmp		ecx							// jump to array of movsd's
-
-$memcpy_uc_test:
-		cmp		ecx, UNCACHED_COPY/64		// big enough? use block prefetch copy
-		jae		$memcpy_bp_1
-
-$memcpy_64_test:
-		or		ecx, ecx					// tail end of block prefetch will jump here
-		jz		$memcpy_ic_2				// no more 64-byte blocks left
-
-// For larger blocks, which will spill beyond the cache, it's faster to
-// use the Streaming Store instruction MOVNTQ.   This write instruction
-// bypasses the cache and writes straight to main memory.  This code also
-// uses the software prefetch instruction to pre-read the data.
-align 16
-$memcpy_uc_1:							// 64-byte blocks, uncached copy
-
-		prefetchnta [esi + (200*64/34+192)]	// start reading ahead
-
-		movq	mm0,[esi+0]					// read 64 bits
-		add		edi,64						// update destination pointer
-		movq	mm1,[esi+8]
-		add		esi,64						// update source pointer
-		movq	mm2,[esi-48]
-		movntq	[edi-64], mm0				// write 64 bits, bypassing the cache
-		movq	mm0,[esi-40]				//    note: movntq also prevents the CPU
-		movntq	[edi-56], mm1				//    from READING the destination address
-		movq	mm1,[esi-32]				//    into the cache, only to be over-written
-		movntq	[edi-48], mm2				//    so that also helps performance
-		movq	mm2,[esi-24]
-		movntq	[edi-40], mm0
-		movq	mm0,[esi-16]
-		movntq	[edi-32], mm1
-		movq	mm1,[esi-8]
-		movntq	[edi-24], mm2
-		movntq	[edi-16], mm0
-		dec		ecx
-		movntq	[edi-8], mm1
-		jnz		$memcpy_uc_1				// last 64-byte block?
-
-		jmp		$memcpy_ic_2				// almost done
-
-// For the largest size blocks, a special technique called Block Prefetch
-// can be used to accelerate the read operations.   Block Prefetch reads
-// one address per cache line, for a series of cache lines, in a short loop.
-// This is faster than using software prefetch, in this case.
-// The technique is great for getting maximum read bandwidth,
-// especially in DDR memory systems.
-$memcpy_bp_1:							// large blocks, block prefetch copy
-
-		cmp		ecx, CACHEBLOCK				// big enough to run another prefetch loop?
-		jl		$memcpy_64_test				// no, back to regular uncached copy
-
-		mov		eax, CACHEBLOCK / 2			// block prefetch loop, unrolled 2X
-		add		esi, CACHEBLOCK * 64		// move to the top of the block
-align 16
-$memcpy_bp_2:
-		mov		edx, [esi-64]				// grab one address per cache line
-		mov		edx, [esi-128]				// grab one address per cache line
-		sub		esi, 128					// go reverse order
-		dec		eax							// count down the cache lines
-		jnz		$memcpy_bp_2				// keep grabbing more lines into cache
-
-		mov		eax, CACHEBLOCK				// now that it's in cache, do the copy
-align 16
-$memcpy_bp_3:
-		movq	mm0, [esi   ]				// read 64 bits
-		movq	mm1, [esi+ 8]
-		movq	mm2, [esi+16]
-		movq	mm3, [esi+24]
-		movq	mm4, [esi+32]
-		movq	mm5, [esi+40]
-		movq	mm6, [esi+48]
-		movq	mm7, [esi+56]
-		add		esi, 64						// update source pointer
-		movntq	[edi   ], mm0				// write 64 bits, bypassing cache
-		movntq	[edi+ 8], mm1				//    note: movntq also prevents the CPU
-		movntq	[edi+16], mm2				//    from READING the destination address
-		movntq	[edi+24], mm3				//    into the cache, only to be over-written,
-		movntq	[edi+32], mm4				//    so that also helps performance
-		movntq	[edi+40], mm5
-		movntq	[edi+48], mm6
-		movntq	[edi+56], mm7
-		add		edi, 64						// update dest pointer
-
-		dec		eax							// count down
-
-		jnz		$memcpy_bp_3				// keep copying
-		sub		ecx, CACHEBLOCK				// update the 64-byte block count
-		jmp		$memcpy_bp_1				// keep processing chunks
-
-// The smallest copy uses the X86 "movsd" instruction, in an optimized
-// form which is an "unrolled loop".   Then it handles the last few bytes.
-align 4
-		movsd
-		movsd								// perform last 1-15 dword copies
-		movsd
-		movsd
-		movsd
-		movsd
-		movsd
-		movsd
-		movsd
-		movsd								// perform last 1-7 dword copies
-		movsd
-		movsd
-		movsd
-		movsd
-		movsd
-		movsd
-
-$memcpy_last_few:						// dword aligned from before movsd's
-		mov		ecx, ebx					// has valid low 2 bits of the byte count
-		and		ecx, 11b					// the last few cows must come home
-		jz		$memcpy_final				// no more, let's leave
-		rep		movsb						// the last 1, 2, or 3 bytes
-
-$memcpy_final:
-		emms								// clean up the MMX state
-		sfence								// flush the write buffer
-		mov		eax, [dest]					// ret value = destination pointer
-	}
-}
-#endif
-#endif
-
-
-#ifdef ENABLE_ASM
-#ifdef _MSC_VER
-void MMX_Memset( void* dest0, const int val, const size_t count0 )
-{
-	union
-	{
-		byte	bytes[8];
-		WORD	words[4];
-		DWORD	dwords[2];
-	} dat;
-
-	byte *dest = (byte *)dest0;
-	int count = count0;
-
-	while( count > 0 && (((int)dest) & 7) )
-	{
-		*dest = val;
-		dest++;
-		count--;
-	}
-	if ( !count )
-		return;
-
-	dat.bytes[0] = val;
-	dat.bytes[1] = val;
-	dat.words[1] = dat.words[0];
-	dat.dwords[1] = dat.dwords[0];
-
-	if ( count >= 64 )
-	{
-		__asm
-		{
-			mov edi, dest
-			mov ecx, count
-			shr ecx, 6		// 64 bytes per iteration
-			movq mm1, dat	// Read in source data
-			movq mm2, mm1
-			movq mm3, mm1
-			movq mm4, mm1
-			movq mm5, mm1
-			movq mm6, mm1
-			movq mm7, mm1
-			movq mm0, mm1
-loop1:
-			movntq 0[EDI], mm1	// Non-temporal stores
-			movntq 8[EDI], mm2
-			movntq 16[EDI], mm3
-			movntq 24[EDI], mm4
-			movntq 32[EDI], mm5
-			movntq 40[EDI], mm6
-			movntq 48[EDI], mm7
-			movntq 56[EDI], mm0
-
-			add edi, 64
-			dec ecx
-			jnz loop1
-		}
-		dest += ( count & ~63 );
-		count &= 63;
-	}
-
-	if ( count >= 8 )
-	{
-		__asm
-		{
-			mov edi, dest
-			mov ecx, count
-			shr ecx, 3		// 8 bytes per iteration
-			movq mm1, dat	// Read in source data
-			loop2:
-			movntq 0[EDI], mm1	// Non-temporal stores
-
-			add edi, 8
-			dec ecx
-			jnz loop2
-		}
-		dest += (count & ~7);
-		count &= 7;
-	}
-
-	while( count > 0 )
-	{
-		*dest = val;
-		dest++;
-		count--;
-	}
-
-	__asm
-	{
-		emms
-	}
-}
-#endif
-#endif
-
 int main(int argc, char *argv[])
 {
     SDL_Event	ev;
 	int			time, oldtime;
 
-	// Cgg - max number of open files at the crt level
-	//_setmaxstdio(2048);
-	// !Cgg
-
 	BuildSqrtTable();				// Ставим в самом начале, т.к. может понадобиться fastsqrt...
-#ifdef ENABLE_ASM
-	M_SelectMath(0, 0, true, true);	// set default progs
-#else
-	M_SelectMath(0, true, true);
-#endif
+	M_SelectMath(0, true, true);	// set default progs
 
 	r1q2_title[0] = /*r1q2_down_title[0] = */0;
 
 	Common_Init (argc, argv);
-#ifdef ENABLE_ASM
-	M_SelectMath(16, 1024*1024, false, true);	// fast select progs
-#else
-	M_SelectMath(16, false, true);
-#endif
+	M_SelectMath(16, false, true);	// fast select progs
 
 /*
 	if (dedicated && dedicated->value)
@@ -98894,7 +96853,6 @@ int main(int argc, char *argv[])
 			time = sys_time - oldtime;
 		} while (time < 1);
 
-		//_controlfp( _PC_24, _MCW_PC );
 		Common_Frame (time);
 
 		oldtime = sys_time;
