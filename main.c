@@ -2380,13 +2380,21 @@ Called when the window loses focus
 void IN_DeactivateMouse ()
 {
 	if (!mouseactive)
+	{
+		// check if we just need to hide cursor for more cinematic experience
+		if (cl.cinematictime > 0 && SDL_ShowCursor(-1))
+		{
+			SDL_ShowCursor(0);
+		}
+		else if (!cl.cinematictime && !SDL_ShowCursor(-1))
+		{
+			SDL_ShowCursor(1);
+		}
 		return;
+	}
 
 	mouseactive = false;
 	SDL_SetRelativeMouseMode(SDL_FALSE);
-
-	if (r_fullscreen->value)
-		SDL_ShowCursor(0);
 }
 
 
@@ -2400,7 +2408,24 @@ Called when the window gains focus or changes in some way
 void IN_ActivateMouse ()
 {
 	if (mouseactive)
-			return;
+	{
+		// no need to hijack mouse during demo playback
+		if (sv.attractloop)
+		{
+			mouseactive = false;
+			SDL_SetRelativeMouseMode(SDL_FALSE);
+			if (SDL_ShowCursor(-1))
+				SDL_ShowCursor(0);
+		}
+		return;
+	}
+	// just make sure cursor is out of the way
+	else if (sv.attractloop)
+	{
+		if (SDL_ShowCursor(-1))
+			SDL_ShowCursor(0);
+		return;
+	}
 
 	mouseactive = true;
 	SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -4646,7 +4671,6 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen, int
 				Com_Printf("...setting windowed mode\n");
 				SDL_SetWindowFullscreen(hWnd, 0);
 				SDL_SetWindowSize(hWnd, width, height);
-				SDL_ShowCursor(1);
 				gl_state.fullscreen = false;
 			}
 		}
@@ -4655,7 +4679,6 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen, int
 			Com_Printf("...setting windowed mode\n");
 			SDL_SetWindowFullscreen(hWnd, 0);
 			SDL_SetWindowSize(hWnd, width, height);
-			SDL_ShowCursor(1);
 			gl_state.fullscreen = false;
 		}
 
@@ -4754,21 +4777,18 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen, int
 		if ( !SDL_SetWindowFullscreen( hWnd, SDL_WINDOW_FULLSCREEN ) )
 		{
 			Com_Printf("ok\n");
-			SDL_ShowCursor(0);
 			gl_state.fullscreen = true;
 		}
 		else
 		{
 			Com_Printf("^1failed\n");
 			Com_Printf("...setting windowed mode\n");
-			SDL_ShowCursor(1);
 			gl_state.fullscreen = false;
 		}
 	}
 	else
 	{
 		Com_Printf("...setting windowed mode\n");
-		SDL_ShowCursor(1);
 		gl_state.fullscreen = false;
 	}
 
