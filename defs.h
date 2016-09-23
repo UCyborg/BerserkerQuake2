@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ===========================================================================
 */
 
+#ifdef __linux__
+#define _GNU_SOURCE
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #include <direct.h>
