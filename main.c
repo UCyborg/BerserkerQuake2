@@ -11723,22 +11723,6 @@ void LoadDDS (char *name, byte **pic, int *width, int *height)
 
 
 
-static void jpg_noop( j_decompress_ptr cinfo )
-{
-}
-
-static boolean jpg_fill_input_buffer( j_decompress_ptr cinfo )
-{
-	Com_DPrintf( "LoadJPG: Premature end of jpeg file\n" );
-    return true;
-}
-
-static void jpg_skip_input_data( j_decompress_ptr cinfo, long num_bytes )
-{
-    cinfo->src->next_input_byte += (size_t) num_bytes;
-    cinfo->src->bytes_in_buffer -= (size_t) num_bytes;
-}
-
 void LoadJPG (char *name, byte **pic, int *width, int *height)
 {
 	int		i, length, samples;
