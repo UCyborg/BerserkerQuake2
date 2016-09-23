@@ -3481,7 +3481,6 @@ void	Cmd_RemoveCommand (char *cmd_name)
 */
 void GLimp_Shutdown()
 {
-	SDL_GL_MakeCurrent(hWnd, NULL);
 	SDL_GL_DeleteContext(hGLRC);
 	hGLRC = NULL;
 
