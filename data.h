@@ -704,7 +704,11 @@ HANDLE	hinput, houtput;
 
 FILE	*logfile;
 
-bool	mouseactive;	// false when not focus app
+// used to restore mouse cursor position when switching from relative mouse mode
+#if SDL_VERSION_ATLEAST(2,0,4)
+int		mouse_x;
+int		mouse_y;
+#endif
 
 
 int		gamma_initialized_;

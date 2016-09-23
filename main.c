@@ -2379,22 +2379,26 @@ Called when the window loses focus
 */
 void IN_DeactivateMouse ()
 {
-	if (!mouseactive)
+	if (!SDL_GetRelativeMouseMode())
 	{
-		// check if we just need to hide cursor for more cinematic experience
-		if (cl.cinematictime > 0 && SDL_ShowCursor(-1))
+		// check if we need to hide the cursor for more cinematic experience
+		if (cl.cinematictime > 0 && cls.key_dest == key_game)
 		{
-			SDL_ShowCursor(0);
+			if (SDL_ShowCursor(SDL_QUERY))
+				SDL_ShowCursor(SDL_DISABLE);
 		}
-		else if (!cl.cinematictime && !SDL_ShowCursor(-1))
-		{
-			SDL_ShowCursor(1);
-		}
+		else if (!SDL_ShowCursor(SDL_QUERY))
+			SDL_ShowCursor(SDL_ENABLE);
 		return;
 	}
 
-	mouseactive = false;
 	SDL_SetRelativeMouseMode(SDL_FALSE);
+
+#if SDL_VERSION_ATLEAST(2,0,4)
+	// this would ideally put the cursor back where user left it
+	// but there are scenarios where it doesn't work properly
+	SDL_WarpMouseGlobal(mouse_x, mouse_y);
+#endif
 }
 
 
@@ -2407,27 +2411,30 @@ Called when the window gains focus or changes in some way
 */
 void IN_ActivateMouse ()
 {
-	if (mouseactive)
+	if (SDL_GetRelativeMouseMode())
 	{
 		// no need to hijack mouse during demo playback
-		if (sv.attractloop)
+		if (cl.attractloop)
 		{
-			mouseactive = false;
 			SDL_SetRelativeMouseMode(SDL_FALSE);
-			if (SDL_ShowCursor(-1))
-				SDL_ShowCursor(0);
+			if (SDL_ShowCursor(SDL_QUERY))
+				SDL_ShowCursor(SDL_DISABLE);
 		}
 		return;
 	}
 	// just make sure cursor is out of the way
-	else if (sv.attractloop)
+	else if (cl.attractloop)
 	{
-		if (SDL_ShowCursor(-1))
-			SDL_ShowCursor(0);
+		if (SDL_ShowCursor(SDL_QUERY))
+			SDL_ShowCursor(SDL_DISABLE);
 		return;
 	}
 
-	mouseactive = true;
+#if SDL_VERSION_ATLEAST(2,0,4)
+	// save the cursor position so we can put it back later
+	SDL_GetGlobalMouseState(&mouse_x, &mouse_y);
+#endif
+
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 }
 
@@ -45745,7 +45752,7 @@ void SDL_EventProc(SDL_Event *ev)
 	{
 		case SDL_MOUSEMOTION:
 		{
-			if (mouseactive)
+			if (SDL_GetRelativeMouseMode())
 			{
 				float sens = sensitivity->value * cl.refdef.fov_x * 0.00066f;
 
