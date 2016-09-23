@@ -15283,7 +15283,7 @@ FILE *FS_Fopen(const char *name, const char *mode)
 	if (!file)
 	{
 		if (errno != ENOENT)
-			gi.dprintf("FS_Fopen(\"%s\", \"%s\"): %d\n", name, mode);
+			gi.dprintf("FS_Fopen(\"%s\", \"%s\"): %s\n", name, mode, strerror(errno));
 	}
 #else
 	errno_t	err;
