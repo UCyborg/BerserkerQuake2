@@ -45888,8 +45888,6 @@ void SDL_EventProc(SDL_Event *ev)
 				case SDL_WINDOWEVENT_MINIMIZED:
 				{
 					AppActivate(false, true);
-					if (s_mute_losefocus && s_mute_losefocus->value)
-						SDL_PauseAudio(1);
 					break;
 				}
 				case SDL_WINDOWEVENT_FOCUS_LOST:
