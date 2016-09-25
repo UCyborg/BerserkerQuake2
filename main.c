@@ -88374,7 +88374,7 @@ void SV_CheckTimeouts ()
 			cl->state = cs_free;	// can now be reused
 			continue;
 		}
-		if ( (cl->state == cs_connected || cl->state == cs_spawned) && cl->lastmessage < droppoint)
+		if ( (cl->state == cs_connected || cl->state == cs_spawned) && cl->lastmessage < droppoint && cl->netchan.remote_address.type != NA_LOOPBACK)
 		{
 			SV_BroadcastPrintf (PRINT_HIGH, "%s timed out\n", cl->name);
 			SV_DropClient (cl);
