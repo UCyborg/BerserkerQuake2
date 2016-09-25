@@ -4692,7 +4692,10 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 		gl_config.wgl_swap_control_tear = true;
 	}
 	else
+	{
 		Com_Printf("^1 not supported\n");
+		gl_config.wgl_swap_control_tear = false;
+	}
 
 	Com_Printf("Using SDL video driver: %s\n", SDL_GetCurrentVideoDriver());
 	SetGamma(vid_gamma->value, vid_bright->value, vid_contrast->value);
