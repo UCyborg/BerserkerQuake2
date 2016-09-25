@@ -4608,6 +4608,154 @@ void R_Register ()
 }
 
 
+bool VID_SetupGLWindow(int width, int height, bool fullscreen, int hz);
+bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
+{
+	cvar_t		*vid_xpos, *vid_ypos;
+	int			x, y;
+	int			nSamples = max((int)r_multiSamples->value, 1);
+	int			realSamples;
+
+	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+	vid_xpos = Cvar_Get("vid_xpos", "0", 0);
+	vid_ypos = Cvar_Get("vid_ypos", "0", 0);
+	x = vid_xpos->value;
+	y = vid_ypos->value;
+
+	for (; nSamples >= 2; nSamples >>= 1)
+	{
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, nSamples);
+
+		Com_Printf("...requesting window with %dx multisampling: ", nSamples);
+		hWnd = SDL_CreateWindow(WINDOW_CLASS_NAME, x, y, width, height, SDL_WINDOW_OPENGL);
+
+		if (hWnd)
+		{
+			Com_Printf("ok\n");
+			break;
+		}
+		else
+			Com_Printf("failed\n");
+	}
+	if (!hWnd)
+	{
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
+
+		Com_Printf("...creating window without multisampling: ");
+		hWnd = SDL_CreateWindow(WINDOW_CLASS_NAME, x, y, width, height, SDL_WINDOW_OPENGL);
+
+		if (hWnd)
+		{
+			Com_Printf("ok\n");
+		}
+		else
+		{
+			Com_Printf("failed\n");
+			Com_Printf("SDL_CreateWindow failed: %s", SDL_GetError());
+			return false;
+		}
+	}
+
+	hGLRC = SDL_GL_CreateContext(hWnd);
+	if (!hGLRC)
+	{
+		SDL_DestroyWindow(hWnd);
+		hWnd = NULL;
+		Com_Printf("SDL_GL_CreateContext failed: %s", SDL_GetError());
+		return false;
+	}
+
+	SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &realSamples);
+	if (realSamples)
+	{
+		Com_Printf("Using multisampling (%i samples per pixel)\n");
+		gl_config.arb_multisample = true;
+	}
+	else
+		gl_config.arb_multisample = false;
+
+	Com_Printf("Adaptive VSYNC");
+
+	if (!SDL_GL_SetSwapInterval(-1))
+	{
+		Com_Printf(" supported\n");
+		gl_config.wgl_swap_control_tear = true;
+	}
+	else
+		Com_Printf(" not supported\n");
+
+	Com_Printf("Using SDL video driver: %s\n", SDL_GetCurrentVideoDriver());
+	SetGamma(vid_gamma->value, vid_bright->value, vid_contrast->value);
+
+	return VID_SetupGLWindow(width, height, fullscreen, hz);
+}
+
+
+bool VID_SetupGLWindow(int width, int height, bool fullscreen, int hz)
+{
+	// resize existing window
+	if (hWnd)
+	{
+		if (fullscreen)
+		{
+			SDL_DisplayMode dm;
+
+			Com_Printf("...attempting fullscreen\n");
+
+			dm.w = width;
+			dm.h = height;
+			dm.driverdata = NULL;
+			dm.format = 0;
+
+			dm.refresh_rate = hz;
+			if (hz)
+				Com_Printf("...display refresh rate is %d Hz\n", hz);
+
+			SDL_SetWindowDisplayMode(hWnd, &dm);
+
+			Com_Printf("...calling SDL_SetWindowFullscreen: ");
+			if (!SDL_SetWindowFullscreen(hWnd, SDL_WINDOW_FULLSCREEN))
+			{
+				Com_Printf("ok\n");
+				gl_state.fullscreen = true;
+			}
+			else
+			{
+				Com_Printf("^1failed\n");
+				return false;
+			}
+		}
+		else
+		{
+			Com_Printf("...setting windowed mode\n");
+			SDL_SetWindowFullscreen(hWnd, 0);
+			SDL_SetWindowSize(hWnd, width, height);
+			gl_state.fullscreen = false;
+		}
+
+		// let the sound and input subsystems know about the new window
+		viddef.width = width;
+		viddef.height = height;
+
+		return true;
+	}
+	else
+	{
+		return VID_CreateGLWindow(width, height, fullscreen, hz);
+	}
+}
+
+
 bool Vid_GetModeInfo( int *width, int *height, int mode )
 {
 	if ( mode < 0 || mode >= _VID_NUM_MODES )
@@ -4621,11 +4769,8 @@ bool Vid_GetModeInfo( int *width, int *height, int mode )
 
 rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen, int hz )
 {
-	cvar_t		*vid_xpos, *vid_ypos;
-	int			x, y;
 	int width, height;
 	char *win_fs[] = { "Win", "FS" };
-	int			nSamples = max((int)r_multiSamples->value, 1);
 
 	Com_Printf("Initializing OpenGL display\n");
 	Com_Printf("...setting mode %d:", mode );
@@ -4638,194 +4783,15 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen, int
 
 	Com_Printf(" %dx%d:%s\n", width, height, win_fs[fullscreen] );
 
-	// resize existing window
-	// this doesn't seem to happen currently,
-	// but it would be worth looking into since
-	// SDL lets us switch resolution or windowed,
-	// fullscreen mode without having to destroy GL
-	// context
-	if (hWnd)
-	{
-		viddef.width = width;
-		viddef.height = height;
-
-		if (fullscreen)
-		{
-			SDL_DisplayMode dm;
-
-			Com_Printf("...attempting fullscreen\n");
-
-			dm.w = width;
-			dm.h = height;
-			dm.driverdata = NULL;
-			dm.format = 0;
-
-			dm.refresh_rate = hz;
-			Com_Printf("...display refresh rate is %d Hz\n", hz);
-
-			SDL_SetWindowDisplayMode(hWnd, &dm);
-
-			Com_Printf("...calling SDL_SetWindowFullscreen: ");
-			if (!SDL_SetWindowFullscreen(hWnd, SDL_WINDOW_FULLSCREEN))
-			{
-				Com_Printf("ok\n");
-				gl_state.fullscreen = true;
-			}
-			else
-			{
-				Com_Printf("^1failed\n");
-				Com_Printf("...setting windowed mode\n");
-				SDL_SetWindowFullscreen(hWnd, 0);
-				SDL_SetWindowSize(hWnd, width, height);
-				gl_state.fullscreen = false;
-			}
-		}
-		else
-		{
-			Com_Printf("...setting windowed mode\n");
-			SDL_SetWindowFullscreen(hWnd, 0);
-			SDL_SetWindowSize(hWnd, width, height);
-			gl_state.fullscreen = false;
-		}
-
-		*pwidth = width;
-		*pheight = height;
-
-		return rserr_ok;
-	}
-	else
-	{
-		SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
-		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-		SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-	}
-
-	vid_xpos = Cvar_Get("vid_xpos", "0", 0);
-	vid_ypos = Cvar_Get("vid_ypos", "0", 0);
-	x = vid_xpos->value;
-	y = vid_ypos->value;
-
-	if (nSamples >= 2)
-	{
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, nSamples);
-
-		Com_Printf("...creating window with multisampling support: ");
-		hWnd = SDL_CreateWindow(WINDOW_CLASS_NAME, x, y, width, height, SDL_WINDOW_OPENGL);
-
-		if (!hWnd)
-		{
-			Com_Printf("^1failed\n");
-			Com_Printf("...retrying without multisampling support: ");
-
-			gl_config.arb_multisample = false;
-			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
-			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
-			hWnd = SDL_CreateWindow(WINDOW_CLASS_NAME, x, y, width, height, SDL_WINDOW_OPENGL);
-
-			if (!hWnd)
-				Sys_Error("SDL_CreateWindow: %s", SDL_GetError());
-		}
-		else
-		{
-			int result;
-			SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &result);
-			gl_config.arb_multisample = result ? true : false;
-			// make it automatic
-			if (gl_config.arb_multisample)
-				Com_Printf("Using multisampling (%i samples per pixel)\n", result);
-			else
-				Com_Printf("^1Multisampling setup FAILED. Try lowering r_multiSamples.\n");
-
-		}
-	}
-	else
-	{
-		gl_config.arb_multisample = false;
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
-
-		Com_Printf("...creating window without multisampling support: ");
-		hWnd = SDL_CreateWindow(WINDOW_CLASS_NAME, x, y, width, height, SDL_WINDOW_OPENGL);
-
-		if (!hWnd)
-			Sys_Error("SDL_CreateWindow: %s", SDL_GetError());
-	}
-
-	Com_Printf("ok\n");
-
-	// let the sound and input subsystems know about the new window
-	viddef.width = width;
-	viddef.height = height;
-
-	if ( fullscreen )
-	{
-		SDL_DisplayMode dm;
-
-		Com_Printf("...attempting fullscreen\n" );
-
-		dm.w = width;
-		dm.h = height;
-		dm.driverdata = NULL;
-		dm.format = 0;
-
-		dm.refresh_rate = hz;
-		Com_Printf("...display refresh rate is %d Hz\n", hz);
-
-		SDL_SetWindowDisplayMode( hWnd, &dm );
-
-		Com_Printf("...calling SDL_SetWindowFullscreen: ");
-		if ( !SDL_SetWindowFullscreen( hWnd, SDL_WINDOW_FULLSCREEN ) )
-		{
-			Com_Printf("ok\n");
-			gl_state.fullscreen = true;
-		}
-		else
-		{
-			Com_Printf("^1failed\n");
-			Com_Printf("...setting windowed mode\n");
-			gl_state.fullscreen = false;
-		}
-	}
-	else
-	{
-		Com_Printf("...setting windowed mode\n");
-		gl_state.fullscreen = false;
-	}
-
 	*pwidth = width;
 	*pheight = height;
 
-	hGLRC = SDL_GL_CreateContext(hWnd);
-	if (!hGLRC)
+	if (!VID_SetupGLWindow(width, height, fullscreen, hz))
 	{
-		SDL_DestroyWindow(hWnd);
-		hWnd = NULL;
-		Sys_Error("SDL_GL_CreateContext failed: %s", SDL_GetError());
+		if (fullscreen)
+			return rserr_invalid_fullscreen;
+		return rserr_unknown;
 	}
-	if (SDL_GL_MakeCurrent(hWnd, hGLRC) < 0)
-	{
-		SDL_GL_DeleteContext(hGLRC);
-		hGLRC = NULL;
-		SDL_DestroyWindow(hWnd);
-		hWnd = NULL;
-		Sys_Error("SDL_GL_MakeCurrent failed: %s", SDL_GetError());
-	}
-
-	if (!SDL_GL_SetSwapInterval(-1))
-	{
-		gl_config.wgl_swap_control_tear = true;
-		SDL_GL_SetSwapInterval(0);
-	}
-
-	Com_Printf("Using SDL video driver: %s\n", SDL_GetCurrentVideoDriver());
-
-	SetGamma(vid_gamma->value, vid_bright->value, vid_contrast->value);
 
 	return rserr_ok;
 }
@@ -7273,8 +7239,8 @@ mnu2:
 	if (r_multiSamples->value < 1)
 		Cvar_ForceSetValue( "r_multiSamples", 1 );
 
-	if (r_multiSamples->value > 8)
-		Cvar_ForceSetValue ("r_multiSamples", 8 );
+	if (r_multiSamples->value > 16)
+		Cvar_ForceSetValue ("r_multiSamples", 16 );
 
 	int anf_ = 1;
 	int goodanf_ = 1;	// Легитимное значение антиалиазинга
@@ -7288,7 +7254,7 @@ mnu2:
 			goodpos_ = amax_;
 		}
 
-		if(anf_ >= 8)
+		if(anf_ >= 16)
 			goto mnu3_;
 
 		anf_ += anf_;
@@ -45843,7 +45809,7 @@ void SDL_EventProc(SDL_Event *ev)
 				if (r_fullscreen)
 				{
 					Cvar_SetValue("r_fullscreen", !r_fullscreen->value);
-					vid_restart = true;
+					Cbuf_AddText("vid_restart\n");
 				}
 			}
 			else
@@ -45985,13 +45951,13 @@ void VID_CheckChanges ()
 		cls.disable_screen = true;
 		cl.force_refdef = true;
 
-		if ( !VID_LoadRefresh() )
-			Com_Error (ERR_FATAL, "Error during initialization video");
+		if (!VID_LoadRefresh())
+			Com_Error(ERR_FATAL, "Error during video initialization");
 
 		/// Berserker: фиксим баг - если отключена вертикальная синхронизация, после vid_restart она сама включается (драйвер?). Форсируем обновление wglSwapIntervalEXT.
 		r_swapinterval->modified = true;
 
- 		cls.disable_screen = false;
+		cls.disable_screen = false;
 	}
 
 	// update our window position
