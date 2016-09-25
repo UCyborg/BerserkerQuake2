@@ -3302,7 +3302,7 @@ void SetGamma(float Gamma, float Bright, float Contrast)
 
 	MakeGammaRamp(gammaRamp, Gamma, Contrast, Bright);
 	if(SDL_SetWindowGammaRamp(hWnd, &gammaRamp[0], &gammaRamp[256], &gammaRamp[512]) < 0)
-		Com_DPrintf("GammaRamp change ^1failed^7: %s\n", SDL_GetError());
+		Com_DPrintf("^1GammaRamp change failed: %s\n", SDL_GetError());
 	else
 		Com_DPrintf("GammaRamp change succeeded\n");
 }
@@ -4640,11 +4640,11 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 
 		if (hWnd)
 		{
-			Com_Printf("ok\n");
+			Com_Printf("^2ok\n");
 			break;
 		}
 		else
-			Com_Printf("failed\n");
+			Com_Printf("^1failed\n");
 	}
 	if (!hWnd)
 	{
@@ -4656,12 +4656,12 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 
 		if (hWnd)
 		{
-			Com_Printf("ok\n");
+			Com_Printf("^2ok\n");
 		}
 		else
 		{
-			Com_Printf("failed\n");
-			Com_Printf("SDL_CreateWindow failed: %s", SDL_GetError());
+			Com_Printf("^1failed\n");
+			Com_Printf("^1SDL_CreateWindow failed: %s", SDL_GetError());
 			return false;
 		}
 	}
@@ -4671,7 +4671,7 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 	{
 		SDL_DestroyWindow(hWnd);
 		hWnd = NULL;
-		Com_Printf("SDL_GL_CreateContext failed: %s", SDL_GetError());
+		Com_Printf("^1SDL_GL_CreateContext failed: %s", SDL_GetError());
 		return false;
 	}
 
@@ -4684,15 +4684,15 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 	else
 		gl_config.arb_multisample = false;
 
-	Com_Printf("Adaptive VSYNC");
+	Com_Printf("^3Adaptive VSYNC");
 
 	if (!SDL_GL_SetSwapInterval(-1))
 	{
-		Com_Printf(" supported\n");
+		Com_Printf("^2 supported\n");
 		gl_config.wgl_swap_control_tear = true;
 	}
 	else
-		Com_Printf(" not supported\n");
+		Com_Printf("^1 not supported\n");
 
 	Com_Printf("Using SDL video driver: %s\n", SDL_GetCurrentVideoDriver());
 	SetGamma(vid_gamma->value, vid_bright->value, vid_contrast->value);
@@ -4726,7 +4726,7 @@ bool VID_SetupGLWindow(int width, int height, bool fullscreen, int hz)
 			Com_Printf("...calling SDL_SetWindowFullscreen: ");
 			if (!SDL_SetWindowFullscreen(hWnd, SDL_WINDOW_FULLSCREEN))
 			{
-				Com_Printf("ok\n");
+				Com_Printf("^2ok\n");
 				gl_state.fullscreen = true;
 			}
 			else
@@ -6452,7 +6452,7 @@ int	Vid_GetSafeMode(bool msg)
 		y = dm.h;
 	}
 	else
-		Com_Printf("SDL_GetDesktopDisplayMode ^1failed^7: %s\n", SDL_GetError());
+		Com_Printf("^1SDL_GetDesktopDisplayMode failed: %s\n", SDL_GetError());
 
 	for (; i<_VID_NUM_MODES; i++)
 		if (vid_modes[i].width == x && vid_modes[i].height == y)
@@ -10415,17 +10415,17 @@ void GL_UpdateSwapInterval ()
 		{
 			if (SDL_GL_SetSwapInterval(-1) == -1)
 			{
-				Com_Printf("Late swap tearing failed, trying regular VSYNC: ");
+				Com_Printf("^3Late swap tearing failed, trying regular VSYNC: ");
 				if (!SDL_GL_SetSwapInterval(1))
-					Com_Printf("ok\n");
+					Com_Printf("^2ok\n");
 				else
-					Com_Printf("^1failed^7 - %s\n", SDL_GetError());
+					Com_Printf("^1failed - %s\n", SDL_GetError());
 			}
 		}
 		else
 		{
 			if (SDL_GL_SetSwapInterval((int)r_swapinterval->value) == -1)
-				Com_Printf("SDL_GL_SetSwapInterval(%i) ^1failed^7: %s\n", (int)r_swapinterval->value, SDL_GetError());
+				Com_Printf("^1SDL_GL_SetSwapInterval(%i) failed: %s\n", (int)r_swapinterval->value, SDL_GetError());
 		}
 	}
 }
@@ -30658,7 +30658,7 @@ void Sys_Init ()
 	char str[64];
 
 	if (SDL_InitSubSystem(SDL_INIT_TIMER) < 0)
-		Sys_Error("SDL_InitSubSystem(SDL_INIT_TIMER) ^1failed^7: %s\n", SDL_GetError());
+		Sys_Error("SDL_InitSubSystem(SDL_INIT_TIMER) failed: %s\n", SDL_GetError());
 
 	// This doesn't display, console buffer too small?
 	Com_Printf("*** Berserker@Quake2 ***\nBuilt: %s %s\nBinary code: x86 (%s)\n\n", __DATE__, __TIME__, BUILDSTRING);
@@ -82386,7 +82386,7 @@ int SNDDMA_Init()
 
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0)
 	{
-		Com_Printf("SDL_InitSubSystem(SDL_INIT_AUDIO) ^1failed^7: %s\n", SDL_GetError());
+		Com_Printf("^1SDL_InitSubSystem(SDL_INIT_AUDIO) failed: %s\n", SDL_GetError());
 		return 0;
 	}
 
@@ -82406,21 +82406,21 @@ int SNDDMA_Init()
 
 	if (SDL_OpenAudio(&desired, &obtained) == -1)
 	{
-		Com_Printf("SDL_OpenAudio ^1failed^7: %s\n", SDL_GetError());
+		Com_Printf("^1SDL_OpenAudio failed: %s\n", SDL_GetError());
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		return 0;
 	}
 
 	if (obtained.format != AUDIO_S16LSB)
 	{
-		Com_Printf("SDL audio format 0x%x ^1unsupported^7.\n", obtained.format);
+		Com_Printf("^3SDL audio format 0x%x ^1unsupported^3.\n", obtained.format);
 		SNDDMA_Shutdown();
 		return 0;
 	}
 
 	if (obtained.channels > 2)
 	{
-		Com_Printf("SDL audio channels %d ^1unsupported^7.\n", obtained.channels);
+		Com_Printf("^3SDL audio channels %d ^1unsupported^3.\n", obtained.channels);
 		SNDDMA_Shutdown();
 		return 0;
 	}
