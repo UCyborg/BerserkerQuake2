@@ -3332,15 +3332,9 @@ void	GL_InitImages ()
 			gammatable[i] = i;
 		else
 		{
-#ifndef OLDGAMMA
-			int inf;
-
-			inf = 255 * pow( i / 255.f, g );
-#else
 			float inf;
 
-			inf = 255 * pow ( (float)(i+0.5f)/255.5f , g ) + 0.5f;
-#endif
+			inf = 255 * pow ( (float)(i+0.5)/255.5 , g ) + 0.5;
 			if (inf < 0)
 				inf = 0;
 			if (inf > 255)
