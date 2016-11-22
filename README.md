@@ -11,19 +11,16 @@ The makefile is provided in the root of this source tree, which should,
 provided you have all needed libraries setup, produce "berserker"
 executable file and game logic library "libgame.so". These libraries are:
 
-libjpeg8  
-libpng (v1.2.* or compatible)  
+libjpeg (v8)  
+libpng  
 libogg  
 libvorbis  
 libvorbisfile  
-SDL2  
+SDL2 (v2.0.4 or newer recommended)  
 zlib
 
 Please note that you must install 32-bit versions of these libraries
-because 64-bit issues are yet to be resolved. Depending on your
-environment, you may need to make minor adjustments to the makefile
-or your environment (eg. 64-bit Ubuntu doesn't create proper symlinks
-to 32-bit libraries).
+because 64-bit issues are yet to be resolved.
 
 Code::Blocks project files are also provided.
 

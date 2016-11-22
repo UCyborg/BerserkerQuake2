@@ -50,7 +50,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <libpng12/png.h>
+#include <png.h>
 #include <SDL2/SDL.h>
 #include "unpak.h"
 #include "m_frames.h"

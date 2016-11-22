@@ -21,7 +21,7 @@
 				<Option type="0" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-O2" />
+					<Add option="-O3" />
 					<Add option="-DNDEBUG" />
 				</Compiler>
 				<Linker>
@@ -41,7 +41,7 @@
 			<Add option="-lvorbisfile" />
 			<Add option="-lz" />
 			<Add option="-lSDL2" />
-			<Add option="-lpng12" />
+			<Add option="-lpng" />
 			<Add option="-ljpeg" />
 		</Linker>
 		<Unit filename="anorms.h" />

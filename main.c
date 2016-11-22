@@ -33,8 +33,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /////	#pragma comment (lib, "OGG/Lib/vorbisfile_static.lib")
 
 #ifdef _WIN32
-#pragma comment (lib, "jpeg.lib")
-#pragma comment (lib, "libpng13.lib")
+#pragma comment (lib, "jpeg8.lib")
+#pragma comment (lib, "libpng16.lib")
 #pragma comment (lib, "libvorbisfile.lib")
 #pragma comment (lib, "zlibwapi.lib")
 #pragma comment (lib, "opengl32.lib")
@@ -3684,7 +3684,7 @@ void	MaterialList_f ()
 
 void png_my_error( png_structp png_ptr, png_const_charp message )
 {
-	longjmp( png_ptr->jmpbuf, 1 );
+	longjmp( png_jmpbuf(png_ptr), 1 );
 }
 
 void png_my_warning( png_structp png_ptr, png_const_charp message )
@@ -3763,7 +3763,7 @@ int MP_ScreenShot_PNG(void *parms)
 			png_destroy_write_struct( &png_ptr, NULL );
 		else
 		{
-			if( setjmp(png_ptr->jmpbuf) )
+			if( setjmp(png_jmpbuf(png_ptr)) )
 				png_destroy_write_struct( &png_ptr, &info_ptr );	// If we get here, we had a problem reading the file
 			else
 			{
@@ -11861,7 +11861,7 @@ void LoadPNG (char *name, byte **pic, int *width, int *height, int *bits)
 
 	png_read_info(png_ptr, info_ptr);
 
-	if (info_ptr->height > MAX_TEXTURE_SIZE || info_ptr->height > MAX_TEXTURE_SIZE)
+	if (png_get_image_height(png_ptr, info_ptr) > MAX_TEXTURE_SIZE)
 	{
         png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
 		Z_Free (PngFileBuffer.Buffer);
@@ -11869,28 +11869,28 @@ void LoadPNG (char *name, byte **pic, int *width, int *height, int *bits)
 		return;
 	}
 
-	if (info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
+	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_PALETTE)
 	{
 		png_set_palette_to_rgb (png_ptr);
 		png_set_filler(png_ptr, 0xFF, PNG_FILLER_AFTER);
 	}
 
-	if (info_ptr->color_type == PNG_COLOR_TYPE_RGB)
+	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGB)
 		png_set_filler(png_ptr, 0xFF, PNG_FILLER_AFTER);
 
-	if ((info_ptr->color_type == PNG_COLOR_TYPE_GRAY) && info_ptr->bit_depth < 8)
-		png_set_gray_1_2_4_to_8(png_ptr);
+	if ((png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_GRAY) && png_get_bit_depth(png_ptr, info_ptr) < 8)
+		png_set_expand_gray_1_2_4_to_8(png_ptr);
 
 	if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
 		png_set_tRNS_to_alpha(png_ptr);
 
-	if (info_ptr->color_type == PNG_COLOR_TYPE_GRAY || info_ptr->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_GRAY || png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_GRAY_ALPHA)
 		png_set_gray_to_rgb(png_ptr);
 
-	if (info_ptr->bit_depth == 16)
+	if (png_get_bit_depth(png_ptr, info_ptr) == 16)
 		png_set_strip_16(png_ptr);
 
-	if (info_ptr->bit_depth < 8)
+	if (png_get_bit_depth(png_ptr, info_ptr) < 8)
         png_set_packing(png_ptr);
 
 	if (png_get_gAMA(png_ptr, info_ptr, &file_gamma))
@@ -11900,18 +11900,18 @@ void LoadPNG (char *name, byte **pic, int *width, int *height, int *bits)
 
 	rowbytes = png_get_rowbytes(png_ptr, info_ptr);
 
-	*pic = (byte*) Z_Malloc (info_ptr->height * rowbytes, true);
+	*pic = (byte*) Z_Malloc (png_get_image_height(png_ptr, info_ptr) * rowbytes, true);
 
-	for (i = 0; i < info_ptr->height; i++)
+	for (i = 0; i < png_get_image_height(png_ptr, info_ptr); i++)
 		row_pointers[i] = *pic + i*rowbytes;
 
 	png_read_image(png_ptr, row_pointers);
 
 	if (width)
-		*width = info_ptr->width;
+		*width = png_get_image_width(png_ptr, info_ptr);
 	if (height)
-		*height = info_ptr->height;
-	*bits = info_ptr->pixel_depth;
+		*height = png_get_image_height(png_ptr, info_ptr);
+	*bits = png_get_bit_depth(png_ptr, info_ptr) * png_get_channels(png_ptr, info_ptr);
 
 	png_read_end(png_ptr, end_info);
 	png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);

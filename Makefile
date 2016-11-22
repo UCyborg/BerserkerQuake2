@@ -2,7 +2,7 @@ CC=gcc
 
 CFLAGS=-w -m32 -O3 -DNDEBUG
 
-LDFLAGS_ENGINE=-m32 -lm -lGL -lvorbis -lvorbisfile -lz -lSDL2 -lpng12 -ljpeg -s
+LDFLAGS_ENGINE=-m32 -lm -lGL -lvorbis -lvorbisfile -lz -lSDL2 -lpng -ljpeg -s
 LDFLAGS_GAME=-shared -m32 -lm -s
 
 ENGINE_SOURCES=main.c unpak.c unzip.c
