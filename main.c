@@ -96739,10 +96739,6 @@ void CL_Frame (int msec)
 	if (cls.frametime > (1.0 / 5))
 		cls.frametime = (1.0 / 5);
 
-	// if in the debugger last frame, don't timeout
-	if (msec > 5000)
-		cls.netchan.last_received = Sys_Milliseconds ();
-
 	// fetch results from server
 	CL_ReadPackets ();
 
