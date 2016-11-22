@@ -2068,6 +2068,7 @@ const char *quality_items[] =
 	"low",
 	"medium",
 	"high",
+	"highest",
 	0
 };
 

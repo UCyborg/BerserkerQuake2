@@ -45124,7 +45124,9 @@ float ClampCvar( float min, float max, float value )
 
 int QualFromKHZ (int khz)
 {
-	if (khz == 44)
+	if (khz == 48)
+		return 3;
+	else if (khz == 44)
 		return 2;
 	else if (khz == 22)
 		return 1;
@@ -82238,14 +82240,18 @@ void SNDDMA_Submit()
 
 void S_ClearBuffer ()
 {
-	if (!sound_started)
-		return;
+	int		clear;
 
 	s_rawend = 0;
 
+	if (dma.samplebits == 8)
+		clear = 0x80;
+	else
+		clear = 0;
+
 	SNDDMA_BeginPainting ();
 	if (dma.buffer)
-		memset(dma.buffer, 0, dma.samples * 2);
+		memset(dma.buffer, clear, dma.samples * dma.samplebits/8);
 	SNDDMA_Submit ();
 }
 
@@ -82327,8 +82333,7 @@ void S_SoundInfo_f()
 	Com_Printf("%5d stereo\n", dma.channels - 1);
 	Com_Printf("%5d samples\n", dma.samples);
 	Com_Printf("%5d samplepos\n", dma.samplepos);
-	Com_Printf("%5d samplebits\n", 16);
-	Com_Printf("%5d submission_chunk\n", dma.submission_chunk);
+	Com_Printf("%5d samplebits\n", dma.samplebits);
 	Com_Printf("%5d speed\n", dma.speed);
 	Com_Printf("0x%x dma buffer\n", dma.buffer);
 	Com_Printf("SDL audio driver: %s\n", SDL_GetCurrentAudioDriver());
@@ -82385,6 +82390,7 @@ Returns false if nothing is found.
 */
 int SNDDMA_Init()
 {
+	unsigned	  buffersize;
 	SDL_AudioSpec desired, obtained;
 
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0)
@@ -82395,26 +82401,30 @@ int SNDDMA_Init()
 
 	memset(&desired, 0, sizeof(desired));
 
-	if (s_khz->value == 44)
+	if (s_khz->value == 48)
+		desired.freq = 48000;
+	else if (s_khz->value == 44)
 		desired.freq = 44100;
 	else if (s_khz->value == 22)
 		desired.freq = 22050;
 	else
 		desired.freq = 11025;
 
+	buffersize = (unsigned)ceil((double)desired.freq / 25.0); // 2048 bytes on 24kHz to 48kHz
+
 	desired.channels = 2;
 	desired.format = AUDIO_S16LSB;
-	desired.samples = 512;
+	desired.samples = CeilPowerOfTwo(buffersize);
 	desired.callback = SDL_SoundCallback;
 
-	if (SDL_OpenAudio(&desired, &obtained) == -1)
+	if (SDL_OpenAudio(&desired, &obtained) < 0)
 	{
 		Com_Printf("^1SDL_OpenAudio failed: %s\n", SDL_GetError());
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		return 0;
 	}
 
-	if (obtained.format != AUDIO_S16LSB)
+	if (obtained.format != AUDIO_S16LSB && obtained.format != AUDIO_U8)
 	{
 		Com_Printf("^3SDL audio format 0x%x ^1unsupported^3.\n", obtained.format);
 		SNDDMA_Shutdown();
@@ -82428,11 +82438,14 @@ int SNDDMA_Init()
 		return 0;
 	}
 
+	if (obtained.format == AUDIO_S16LSB)
+		dma.samplebits = 16;
+	else
+		dma.samplebits = 8;
 	dma.channels = obtained.channels;
-	dma.samples = 0x8000 * obtained.channels;
+	dma.samples = 0x2000 * obtained.channels;
 	dma.speed = obtained.freq;
-	dma.buffer = (byte *)Z_Malloc(dma.samples * 2, false);
-	dma.submission_chunk = 1;
+	dma.buffer = (byte *)Z_Malloc(dma.samples * dma.samplebits/8, false);
 
 	if (!dma.buffer)
 	{
@@ -82463,7 +82476,7 @@ void S_Init ()
 	else
 	{
 		s_volume = Cvar_Get ("s_volume", "0.7", CVAR_ARCHIVE);
-		s_khz = Cvar_Get ("s_khz", "22", CVAR_ARCHIVE);
+		s_khz = Cvar_Get ("s_khz", "48", CVAR_ARCHIVE);
 		s_loadas8bit = Cvar_Get ("s_loadas8bit", "0", CVAR_ARCHIVE);
 		s_mixahead = Cvar_Get ("s_mixahead", "0.2", CVAR_ARCHIVE);
 		s_mute_losefocus = Cvar_Get ("s_mute_losefocus", "1", CVAR_ARCHIVE);
@@ -86589,7 +86602,12 @@ void UpdateSoundQualityFunc( void *unused )
 {
 	if ( s_options_quality_list.curvalue )
 	{
-		if (s_options_quality_list.curvalue == 2)
+		if (s_options_quality_list.curvalue == 3)
+		{
+			Cvar_SetValue("s_khz", 48);
+			s_options_quality_list.generic.statusbar = "48000 Hz, 16 bit";
+		}
+		else if (s_options_quality_list.curvalue == 2)
 		{
 			Cvar_SetValue( "s_khz", 44 );
 			s_options_quality_list.generic.statusbar = "44100 Hz, 16 bit";
@@ -96375,12 +96393,12 @@ void S_TransferStereo16 (unsigned long *pbuf, int endtime)
 
 void S_TransferPaintBuffer(int endtime)
 {
-//	int 	out_idx;
-//	int 	count;
-//	int 	out_mask;
-//	int 	*p;
-//	int 	step;
-//	int		val;
+	int 	out_idx;
+	int 	count;
+	int 	out_mask;
+	int 	*p;
+	int 	step;
+	int		val;
 	unsigned long *pbuf;
 
 	pbuf = (unsigned long *)dma.buffer;
@@ -96396,11 +96414,11 @@ void S_TransferPaintBuffer(int endtime)
 			paintbuffer[i].left = paintbuffer[i].right = sin((paintedtime+i)*0.1)*20000*256;
 	}
 
-//	if (dma.samplebits == 16 && dma.channels == 2)
-//	{	// optimized case
+	if (dma.samplebits == 16 && dma.channels == 2)
+	{	// optimized case
 		S_TransferStereo16 (pbuf, endtime);
-//	}
-/*	else
+	}
+	else
 	{	// general case
 		p = (int *) paintbuffer;
 		count = (endtime - paintedtime) * dma.channels;
@@ -96439,7 +96457,6 @@ void S_TransferPaintBuffer(int endtime)
 			}
 		}
 	}
-*/
 }
 
 
@@ -96568,9 +96585,6 @@ void S_Update_()
 	unsigned        endtime;
 	int				samps;
 
-	if (!sound_started || (!ActiveApp && s_mute_losefocus->value))
-		return;
-
 	SNDDMA_BeginPainting ();
 
 // Updates DMA time
@@ -96586,9 +96600,6 @@ void S_Update_()
 // mix ahead of current position
 	endtime = soundtime + s_mixahead->value * dma.speed;
 
-	// mix to an even submission block size
-	endtime = (endtime + dma.submission_chunk-1)
-		& ~(dma.submission_chunk-1);
 	samps = dma.samples >> (dma.channels-1);
 	if (endtime - soundtime > samps)
 		endtime = soundtime + samps;
