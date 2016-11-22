@@ -8,8 +8,8 @@ It is currently known to compile and run on Linux and Windows.
 ### Building on Linux
 
 The makefile is provided in the root of this source tree, which should,
-provided you have all needed libraries setup, produce "berserker"
-executable file and game logic library "libgame.so". These libraries are:
+provided you have all needed libraries setup, produce "berserkerq2"
+executable file and game logic library "game.so". These libraries are:
 
 libjpeg (v8)  
 libpng  
@@ -55,8 +55,8 @@ file access on Linux systems.
 Now, you just need to put compiled executable files in their places:  
 (assuming Quake2 is the folder where you put the data)
 
-berserker or Berserker.exe -> Quake2  
-libgame.so or Game.dll -> Quake2/baseq2
+berserkerq2 or berserkerq2.exe -> Quake2  
+game.so or game.dll -> Quake2/baseq2
 
 Finally, you can run the game. Make sure it's executed from its own directory so it can find the data.
 

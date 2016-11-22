@@ -11,8 +11,8 @@ GAME_SOURCES=game.c
 ENGINE_OBJECTS=$(ENGINE_SOURCES:.c=.o)
 GAME_OBJECTS=$(GAME_SOURCES:.c=.o)
 
-ENGINE_EXE=berserker
-GAME_LIB=libgame.so
+ENGINE_EXE=berserkerq2
+GAME_LIB=game.so
 
 all: $(ENGINE_EXE) $(GAME_LIB)
 

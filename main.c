@@ -39737,9 +39737,9 @@ void *Sys_GetGameAPI (void *parms)
 	char	name[MAX_OSPATH];
 	char	*path;
 #ifdef _WIN32
-	const char *gamename = "Game.dll";
+	const char *gamename = "game.dll";
 #else
-	const char *gamename = "libgame.so";
+	const char *gamename = "game.so";
 #endif
 
 	if (game_library)

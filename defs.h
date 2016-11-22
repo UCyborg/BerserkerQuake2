@@ -449,7 +449,7 @@ typedef struct cmdalias_s
 #define	CVAR_LATCH		16	// save changes until server restart
 #define	CVAR_VID_LATCH	32	// save changes until videosystem restart
 
-#define	WINDOW_CLASS_NAME	"Berserker"
+#define	WINDOW_CLASS_NAME	"BerserkerQ2"
 #define	BASEDIRNAME		"baseq2"
 
 #define	NUM_CON_TIMES 4
