@@ -16,14 +16,7 @@ typedef unsigned short SHORT;
 #define _mkdir( x )	mkdir( x, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH )
 
 #define EXPORT __attribute__((visibility("default")))
-#define NAKED
 #else
-
-#if 0
-#define NAKED __declspec(naked)
-#else
-#define NAKED
-#endif
 
 #define EXPORT __declspec(dllexport)
 #endif
