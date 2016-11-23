@@ -255,58 +255,58 @@ typedef struct edict_s edict_t;
 // mouse buttons generate virtual keys
 //
 #define	K_MOUSE1		200
-#define	K_MOUSE2		201
-#define	K_MOUSE3		202
+#define	K_MOUSE2		202
+#define	K_MOUSE3		201
 #define K_MOUSE4		203
 #define K_MOUSE5		204
 
 //
 // joystick buttons
 //
-#define	K_JOY1			203
-#define	K_JOY2			204
-#define	K_JOY3			205
-#define	K_JOY4			206
+#define	K_JOY1			205
+#define	K_JOY2			206
+#define	K_JOY3			207
+#define	K_JOY4			208
 
 //
 // aux keys are for multi-buttoned joysticks to generate so they can use
 // the normal binding process
 //
-#define	K_AUX1			207
-#define	K_AUX2			208
-#define	K_AUX3			209
-#define	K_AUX4			210
-#define	K_AUX5			211
-#define	K_AUX6			212
-#define	K_AUX7			213
-#define	K_AUX8			214
-#define	K_AUX9			215
-#define	K_AUX10			216
-#define	K_AUX11			217
-#define	K_AUX12			218
-#define	K_AUX13			219
-#define	K_AUX14			220
-#define	K_AUX15			221
-#define	K_AUX16			222
-#define	K_AUX17			223
-#define	K_AUX18			224
-#define	K_AUX19			225
-#define	K_AUX20			226
-#define	K_AUX21			227
-#define	K_AUX22			228
-#define	K_AUX23			229
-#define	K_AUX24			230
-#define	K_AUX25			231
-#define	K_AUX26			232
-#define	K_AUX27			233
-#define	K_AUX28			234
-#define	K_AUX29			235
-#define	K_AUX30			236
-#define	K_AUX31			237
-#define	K_AUX32			238
+#define	K_AUX1			209
+#define	K_AUX2			210
+#define	K_AUX3			211
+#define	K_AUX4			212
+#define	K_AUX5			213
+#define	K_AUX6			214
+#define	K_AUX7			215
+#define	K_AUX8			216
+#define	K_AUX9			217
+#define	K_AUX10			218
+#define	K_AUX11			219
+#define	K_AUX12			220
+#define	K_AUX13			221
+#define	K_AUX14			222
+#define	K_AUX15			223
+#define	K_AUX16			224
+#define	K_AUX17			225
+#define	K_AUX18			226
+#define	K_AUX19			227
+#define	K_AUX20			228
+#define	K_AUX21			229
+#define	K_AUX22			230
+#define	K_AUX23			231
+#define	K_AUX24			232
+#define	K_AUX25			233
+#define	K_AUX26			234
+#define	K_AUX27			235
+#define	K_AUX28			236
+#define	K_AUX29			237
+#define	K_AUX30			238
+#define	K_AUX31			239
+#define	K_AUX32			240
 
-#define K_MWHEELDOWN	239
-#define K_MWHEELUP		240
+#define K_MWHEELDOWN	241
+#define K_MWHEELUP		242
 
 
 typedef struct

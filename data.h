@@ -96,7 +96,6 @@ char	*keybindings[256];
 int		anykeydown;
 bool	keydown[256];
 int		key_repeats[256];	// if > 1, it is autorepeating
-int		key_waiting;
 int		shift_down=false;
 
 sizebuf_t	cmd_text;

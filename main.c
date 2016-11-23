@@ -14466,6 +14466,7 @@ const char *M_Credits_Key( int key )
 {
 	switch (key)
 	{
+	case K_MOUSE2:
 	case K_ESCAPE:
 		M_FreeCredits();
 		M_PopMenu ();
@@ -24149,13 +24150,13 @@ void Key_Console (int key)
 		return;
 	}
 
-	if (key == K_PGUP || key == K_KP_PGUP )
+	if (key == K_PGUP || key == K_KP_PGUP || key == K_MWHEELUP )
 	{
 		con.display -= 2;
 		return;
 	}
 
-	if (key == K_PGDN || key == K_KP_PGDN )
+	if (key == K_PGDN || key == K_KP_PGDN || key == K_MWHEELDOWN )
 	{
 		con.display += 2;
 		if (con.display > con.current)
@@ -24209,14 +24210,6 @@ void Key_Event (int key, bool down)
 {
 	char	*kb;
 	char	cmd[1024];
-
-	// hack for modal presses
-	if (key_waiting == -1)
-	{
-		if (down)
-			key_waiting = key;
-		return;
-	}
 
 	// update auto-repeat status
 	if (down)
@@ -28210,6 +28203,9 @@ void Key_Init ()
 	consolekeys[K_KP_PLUS] = true;
 	consolekeys[K_KP_MINUS] = true;
 	consolekeys[K_KP_5] = true;
+
+	consolekeys[K_MWHEELDOWN] = true;
+	consolekeys[K_MWHEELUP] = true;
 
 	consolekeys['`'] = false;
 	consolekeys['~'] = false;
@@ -45568,7 +45564,13 @@ void AppActivate(bool fActive, bool minimize)
 {
 	Minimized = minimize;
 
-	Key_ClearStates();
+	if (!minimize)
+	{
+		if (!fActive)
+			Key_ClearStates();
+		if (s_mute_losefocus && s_mute_losefocus->value)
+			SDL_PauseAudio(!fActive);
+	}
 
 	// we don't want to act like we're active if we're minimized
 	if (fActive && !Minimized)
@@ -45734,71 +45736,9 @@ void SDL_EventProc(SDL_Event *ev)
 			break;
 		}
 		case SDL_MOUSEBUTTONDOWN:
-		{
-			switch (ev->button.button)
-			{
-				case SDL_BUTTON_LEFT:
-				{
-					Key_Event(K_MOUSE1, true);
-					break;
-				}
-				case SDL_BUTTON_RIGHT:
-				{
-					Key_Event(K_MOUSE2, true);
-					break;
-				}
-				case SDL_BUTTON_MIDDLE:
-				{
-					Key_Event(K_MOUSE3, true);
-					break;
-				}
-				case SDL_BUTTON_X1:
-				{
-					Key_Event(K_MOUSE4, true);
-					break;
-				}
-				case SDL_BUTTON_X2:
-				{
-					Key_Event(K_MOUSE5, true);
-					break;
-				}
-				default:
-					break;
-			}
-			break;
-		}
 		case SDL_MOUSEBUTTONUP:
 		{
-			switch (ev->button.button)
-			{
-				case SDL_BUTTON_LEFT:
-				{
-					Key_Event(K_MOUSE1, false);
-					break;
-				}
-				case SDL_BUTTON_RIGHT:
-				{
-					Key_Event(K_MOUSE2, false);
-					break;
-				}
-				case SDL_BUTTON_MIDDLE:
-				{
-					Key_Event(K_MOUSE3, false);
-					break;
-				}
-				case SDL_BUTTON_X1:
-				{
-					Key_Event(K_MOUSE4, false);
-					break;
-				}
-				case SDL_BUTTON_X2:
-				{
-					Key_Event(K_MOUSE5, false);
-					break;
-				}
-				default:
-					break;
-			}
+			Key_Event(199 + ev->button.button, ev->button.state == SDL_PRESSED);
 			break;
 		}
 		case SDL_KEYDOWN:
@@ -45850,23 +45790,10 @@ void SDL_EventProc(SDL_Event *ev)
 					break;
 				}
 				case SDL_WINDOWEVENT_MINIMIZED:
-				{
-					AppActivate(false, true);
-					break;
-				}
 				case SDL_WINDOWEVENT_FOCUS_LOST:
-				{
-					AppActivate(false, false);
-					if (s_mute_losefocus && s_mute_losefocus->value)
-						SDL_PauseAudio(1);
-					break;
-				}
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
 				{
-					// KJB: Watch this for problems in fullscreen modes with Alt-tabbing.
-					AppActivate(true, false);
-					if (s_mute_losefocus && s_mute_losefocus->value)
-						SDL_PauseAudio(0);
+					AppActivate(ev->window.event == SDL_WINDOWEVENT_FOCUS_GAINED, ev->window.event == SDL_WINDOWEVENT_MINIMIZED);
 					break;
 				}
 				case SDL_WINDOWEVENT_CLOSE:
@@ -84641,9 +84568,11 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 
 	switch ( key )
 	{
+	case K_MOUSE2:
 	case K_ESCAPE:
 		M_PopMenu();
 		return menu_out_sound;
+	case K_MWHEELUP:
 	case K_KP_UPARROW:
 	case K_UPARROW:
 		if ( m )
@@ -84653,6 +84582,9 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 			sound = menu_move_sound;
 		}
 		break;
+	case K_MWHEELDOWN:
+	case K_KP_DOWNARROW:
+	case K_DOWNARROW:
 	case K_TAB:
 		if ( m )
 		{
@@ -84661,15 +84593,7 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 			sound = menu_move_sound;
 		}
 		break;
-	case K_KP_DOWNARROW:
-	case K_DOWNARROW:
-		if ( m )
-		{
-			m->cursor++;
-			Menu_AdjustCursor( m, 1 );
-			sound = menu_move_sound;
-		}
-		break;
+	case K_MOUSE4:
 	case K_KP_LEFTARROW:
 	case K_LEFTARROW:
 		if ( m )
@@ -84678,6 +84602,7 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 			sound = menu_move_sound;
 		}
 		break;
+	case K_MOUSE5:
 	case K_KP_RIGHTARROW:
 	case K_RIGHTARROW:
 		if ( m )
@@ -84688,7 +84613,6 @@ const char *Default_MenuKey( menuframework_s *m, int key )
 		break;
 
 	case K_MOUSE1:
-	case K_MOUSE2:
 	case K_MOUSE3:
 	case K_JOY1:
 	case K_JOY2:
@@ -87008,7 +86932,7 @@ void Keys_MenuInit()
 	Menu_AddItem( &s_keys_menu, ( void * ) &s_keys_help_computer_action );
 	Menu_AddItem( &s_keys_menu, ( void * ) &s_keys_screenshot_action );
 
-	Menu_SetStatusBar( &s_keys_menu, "enter to change, del/backspace to clear" );
+	Menu_SetStatusBar( &s_keys_menu, "enter/mouse1 to change, del/backspace to clear" );
 	Menu_Center( &s_keys_menu );
 
 	if(r_mode->value != 0)
@@ -87341,13 +87265,14 @@ const char *Keys_MenuKey( int key )
 			Cbuf_InsertText (cmd);
 		}
 
-		Menu_SetStatusBar( &s_keys_menu, "enter to change, del/backspace to clear" );
+		Menu_SetStatusBar( &s_keys_menu, "enter/mouse1 to change, del/backspace to clear" );
 		bind_grab = false;
 		return menu_out_sound;
 	}
 
 	switch ( key )
 	{
+	case K_MOUSE1:
 	case K_KP_ENTER:
 	case K_ENTER:
 		KeyBindingFunc( item );
@@ -87384,6 +87309,7 @@ const char *Keys_MenuKey2( int key )
 
 	switch ( key )
 	{
+	case K_MOUSE1:
 	case K_KP_ENTER:
 	case K_ENTER:
 		Key2BindingFunc( item );
@@ -87403,12 +87329,14 @@ const char *M_Quit_Key (int key)
 {
 	switch (key)
 	{
+	case K_MOUSE2:
 	case K_ESCAPE:
 	case 'n':
 	case 'N':
 		M_PopMenu ();
 		break;
 
+	case K_MOUSE1:
 	case K_ENTER:
 	case 'Y':
 	case 'y':
@@ -87469,27 +87397,33 @@ const char *VID_MenuKey( int key )
 
 	switch ( key )
 	{
+	case K_MOUSE2:
 	case K_ESCAPE:
 		M_PopMenu ();	//CancelChanges
 		return NULL;
+	case K_MWHEELUP:
 	case K_KP_UPARROW:
 	case K_UPARROW:
 		m->cursor--;
 		Menu_AdjustCursor( m, -1 );
 		break;
+	case K_MWHEELDOWN:
 	case K_KP_DOWNARROW:
 	case K_DOWNARROW:
 		m->cursor++;
 		Menu_AdjustCursor( m, 1 );
 		break;
+	case K_MOUSE4:
 	case K_KP_LEFTARROW:
 	case K_LEFTARROW:
 		Menu_SlideItem( m, -1 );
 		break;
+	case K_MOUSE5:
 	case K_KP_RIGHTARROW:
 	case K_RIGHTARROW:
 		Menu_SlideItem( m, 1 );
 		break;
+	case K_MOUSE1:
 	case K_KP_ENTER:
 	case K_ENTER:
 		if ( !Menu_SelectItem( m ) )
@@ -87514,22 +87448,26 @@ const char *M_Main_Key (int key)
 
 	switch (key)
 	{
+	case K_MOUSE2:
 	case K_ESCAPE:
 		M_PopMenu ();
 		break;
 
+	case K_MWHEELDOWN:
 	case K_KP_DOWNARROW:
 	case K_DOWNARROW:
 		if (++m_main_cursor >= MAIN_ITEMS)
 			m_main_cursor = 0;
 		return (char*)sound;
 
+	case K_MWHEELUP:
 	case K_KP_UPARROW:
 	case K_UPARROW:
 		if (--m_main_cursor < 0)
 			m_main_cursor = MAIN_ITEMS - 1;
 		return (char*)sound;
 
+	case K_MOUSE1:
 	case K_KP_ENTER:
 	case K_ENTER:
 		m_entersound = true;
