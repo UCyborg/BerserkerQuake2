@@ -24473,7 +24473,6 @@ void Con_ToggleConsole_f ()
 		// start the demo loop again
 		Cbuf_AddText ("d1\n");
 		M_ForceMenuOff ();
-		Cvar_Set ("paused", "0");
 		return;
 	}
 
@@ -24483,7 +24482,6 @@ void Con_ToggleConsole_f ()
 	if (cls.key_dest == key_console)
 	{
 		M_ForceMenuOff ();
-		Cvar_Set ("paused", "0");
 	}
 	else
 	{
