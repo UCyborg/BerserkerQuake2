@@ -24257,7 +24257,7 @@ void Key_Event (int key, bool down)
 			return;
 		}
 
-		if (key >= 200 && !keybindings[key])
+		if (key >= 200 && !keybindings[key] && cls.key_dest != key_console)
 			Com_Printf ("^3%s is unbound, hit F4 to set.\n", Key_KeynumToString (key) );
 	}
 	else
