@@ -407,15 +407,7 @@ cvar_t	*hud_overbright;
 cvar_t	*crosshair;
 cvar_t	*scr_crosshair_scale;
 cvar_t	*cl_nodelta;
-cvar_t	*adr0;
-cvar_t	*adr1;
-cvar_t	*adr2;
-cvar_t	*adr3;
-cvar_t	*adr4;
-cvar_t	*adr5;
-cvar_t	*adr6;
-cvar_t	*adr7;
-cvar_t	*adr8;
+cvar_t	*adr[NUM_ADDRESSBOOK_ENTRIES];
 
 cvar_t	*dl_shell;
 cvar_t	*dl_rocket;

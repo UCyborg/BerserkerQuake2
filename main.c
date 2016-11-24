@@ -73522,7 +73522,7 @@ void CL_PingServers_f ()
 	}
 
 	// send a packet to each address book entry
-	for (i=0 ; i<16 ; i++)
+	for (i=0 ; i<NUM_ADDRESSBOOK_ENTRIES ; i++)
 	{
 		Com_sprintf (name, sizeof(name), "adr%i", i);
 		adrstring = Cvar_VariableString (name);
@@ -80612,8 +80612,8 @@ void CL_InitLocal ()
 
 	CL_InitInput ();
 
-	for( i=0 ; i<MAX_LOCAL_SERVERS ; i++ )
-		Cvar_Get( va( "adr%i", i ), "", CVAR_ARCHIVE );
+	for( i=0 ; i<NUM_ADDRESSBOOK_ENTRIES ; i++ )
+		adr[i] = Cvar_Get( va( "adr%i", i ), "", CVAR_ARCHIVE );
 
 //
 // register our variables
@@ -90897,7 +90897,7 @@ void CL_ParseServerData ()
 		prot = PROTOCOL_VERSION;
 
 	// BIG HACK to let demos from release work with the 3.0x patch!!!
-	if (Com_ServerState() && prot == 34)
+	if (Com_ServerState() && prot == OLD_PROTOCOL_VERSION)
 	{
 	}
 	else if (i != prot)
