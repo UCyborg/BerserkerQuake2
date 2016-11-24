@@ -24215,7 +24215,7 @@ void Key_Event (int key, bool down)
 	if (down)
 	{
 		key_repeats[key]++;
-		if (m_menudepth)
+		if (m_menudepth || cls.key_dest == key_console || cls.key_dest == key_message)
 		{
 			if (key != K_BACKSPACE
 				&& key != K_PAUSE
@@ -24224,7 +24224,7 @@ void Key_Event (int key, bool down)
 				&& key != K_PGDN
 				&& key != K_KP_PGDN
 				// Berserker: если находимся в меню, добавим также автоповтор курсорных клавишь
-			 	&& key != K_LEFTARROW
+				&& key != K_LEFTARROW
 				&& key != K_RIGHTARROW
 				&& key != K_UPARROW
 				&& key != K_DOWNARROW
@@ -24232,7 +24232,9 @@ void Key_Event (int key, bool down)
 				&& key != K_KP_RIGHTARROW
 				&& key != K_KP_UPARROW
 				&& key != K_KP_DOWNARROW
-				//
+				// need auto-repeat for letters when typing
+				&& key < 32
+				&& key > 127
 				&& key_repeats[key] > 1)
 				return;	// ignore most autorepeats
 		}
