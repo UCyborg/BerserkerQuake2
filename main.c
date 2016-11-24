@@ -24248,6 +24248,13 @@ void Key_Event (int key, bool down)
 				return;	// ignore most autorepeats
 		}
 
+		if (keydown[K_ALT] && key == K_ENTER)
+		{
+			Cvar_SetValue("r_fullscreen", !r_fullscreen->value);
+			vid_restart = true;
+			return;
+		}
+
 		if (key >= 200 && !keybindings[key])
 			Com_Printf ("^3%s is unbound, hit F4 to set.\n", Key_KeynumToString (key) );
 	}
@@ -45742,22 +45749,9 @@ void SDL_EventProc(SDL_Event *ev)
 			break;
 		}
 		case SDL_KEYDOWN:
-		{
-			if (ev->key.keysym.sym == SDLK_RETURN && ev->key.keysym.mod & KMOD_ALT)
-			{
-				if (r_fullscreen)
-				{
-					Cvar_SetValue("r_fullscreen", !r_fullscreen->value);
-					Cbuf_AddText("vid_restart\n");
-				}
-			}
-			else
-				Key_Event( MapKey (ev->key.keysym.sym ), true );
-			break;
-		}
 		case SDL_KEYUP:
 		{
-			Key_Event( MapKey( ev->key.keysym.sym ), false );
+			Key_Event( MapKey (ev->key.keysym.sym ), ev->key.state == SDL_PRESSED );
 			break;
 		}
 		case SDL_MOUSEWHEEL:
