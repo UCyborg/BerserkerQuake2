@@ -141,8 +141,21 @@ keyname_t keynames[] =
 	{"MOUSE1", K_MOUSE1},
 	{"MOUSE2", K_MOUSE2},
 	{"MOUSE3", K_MOUSE3},
-        {"MOUSE4", K_MOUSE4},	/// added by Willow: new mouse support
-        {"MOUSE5", K_MOUSE5},	/// added by Willow: new mouse support
+	/// added by Willow: new mouse support
+	{"MOUSE4", K_MOUSE4},
+	{"MOUSE5", K_MOUSE5},
+	// UCyborg: more mouse buttons!
+	{"MOUSE6", K_MOUSE6},
+	{"MOUSE7", K_MOUSE7},
+	{"MOUSE8", K_MOUSE8},
+	{"MOUSE9", K_MOUSE9},
+	{"MOUSE10", K_MOUSE10},
+	{"MOUSE11", K_MOUSE11},
+	{"MOUSE12", K_MOUSE12},
+	{"MOUSE13", K_MOUSE13},
+	{"MOUSE14", K_MOUSE14},
+	{"MOUSE15", K_MOUSE15},
+	{"MOUSE16", K_MOUSE16},
 
 	{"JOY1", K_JOY1},
 	{"JOY2", K_JOY2},

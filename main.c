@@ -45745,7 +45745,8 @@ void SDL_EventProc(SDL_Event *ev)
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 		{
-			Key_Event(199 + ev->button.button, ev->button.state == SDL_PRESSED);
+			if (ev->button.button < SDL_BUTTON_LEFT + 16)
+				Key_Event(199 + ev->button.button, ev->button.state == SDL_PRESSED);
 			break;
 		}
 		case SDL_KEYDOWN:
