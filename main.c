@@ -45890,10 +45890,7 @@ void VID_CheckChanges ()
 	if ( vid_xpos->modified || vid_ypos->modified )
 	{
 		if (!r_fullscreen->value)
-		{
-			SDL_SetWindowSize(hWnd, viddef.width, viddef.height);
 			SDL_SetWindowPosition(hWnd, (int)vid_xpos->value, (int)vid_ypos->value);
-		}
 
 		vid_xpos->modified = false;
 		vid_ypos->modified = false;
