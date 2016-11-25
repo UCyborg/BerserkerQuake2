@@ -339,7 +339,7 @@ typedef enum
 	ca_active			// game views should be displayed
 } connstate_t;
 
-typedef enum {key_game, key_console, key_message, key_menu, key_get} keydest_t;
+typedef enum {key_game, key_console, key_message, key_menu} keydest_t;
 
 #define	PORT_ANY	-1
 

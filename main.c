@@ -964,6 +964,8 @@ again:	if (!Q_strcasecmp (dot, ".pcx"))
 		cl.cinematictime = 1;
 		SCR_EndLoadingPlaque ();
 		cls.state = ca_active;
+		if (cls.key_dest != key_menu)
+			cls.key_dest = key_game;
 		if (!cin.pic)
 		{
 			Com_Printf ("SCR_PlayCinematic: %s not found.\n", name);
@@ -994,6 +996,8 @@ again:	if (!Q_strcasecmp (dot, ".pcx"))
 	SCR_EndLoadingPlaque ();
 
 	cls.state = ca_active;
+	if (cls.key_dest != key_menu)
+		cls.key_dest = key_game;
 
 	FS_Read (&width, 4, cl.cinematic_file);
 	FS_Read (&height, 4, cl.cinematic_file);
@@ -10176,56 +10180,6 @@ void Con_ClearNotify ()
 		con.times[i] = 0;
 }
 
-void Key_Get (int key)
-{
-	/// Berserker's fix: если выполнить команду GET не из игры, а просто из консоли, то имеем мелкий глючок-с...
-	if (cls.state != ca_active)
-	{
-		cls.key_dest = key_console;
-		chat_bufferlen = 0;
-		chat_buffer[0] = 0;
-	}
-
-	if ( key == K_ENTER || key == K_KP_ENTER )
-	{
-		cvar_t *getreceived = Cvar_Get("get_received", "", 0);
-		getreceived->help = "special cvar for a reception of data for GET command.";
-		Cvar_Set("get_received", chat_buffer);
-
-		cls.key_dest = key_game;
-		chat_bufferlen = 0;
-		chat_buffer[0] = 0;
-		return;
-	}
-
-	if (key == K_ESCAPE)
-	{
-		cls.key_dest = key_game;
-		chat_bufferlen = 0;
-		chat_buffer[0] = 0;
-		return;
-	}
-
-	if (key < 32 || key > 127)
-		return;	// non printable
-
-	if (key == K_BACKSPACE)
-	{
-		if (chat_bufferlen)
-		{
-			chat_bufferlen--;
-			chat_buffer[chat_bufferlen] = 0;
-		}
-		return;
-	}
-
-	if (chat_bufferlen == sizeof(chat_buffer)-1)
-		return; // all full
-
-	chat_buffer[chat_bufferlen++] = key;
-	chat_buffer[chat_bufferlen] = 0;
-}
-
 void Key_Message (int key)
 {
 	/// Berserker's fix: если выполнить команду MESSAGEMODE* не из игры, а просто из консоли, то имеем мелкий глючок-с...
@@ -18885,6 +18839,8 @@ void CL_ParseFrame ()
 		if (cls.state != ca_active)
 		{
 			cls.state = ca_active;
+			if (cls.key_dest != key_menu)
+				cls.key_dest = key_game;
 
 			//r1: fix for precision loss with high serverframes (when map runs for over several hours)
 			cl.initial_server_frame = cl.frame.serverframe;
@@ -20270,22 +20226,7 @@ void Con_DrawNotify ()
 	GL_Color3f(1,1,1);
 	gl_TexEnv( GL_REPLACE );
 
-	if (cls.key_dest == key_get)
-	{
-		cvar_t *getmess = Cvar_Get("get_message", ">", 0);
-		getmess->help = "special cvar, contains the message using in GET command.";
-		int l = strlen(getmess->string);
-		if (l)
-			DrawString (16, v<<1, getmess->string);
-		else
-		{
-			DrawString (16, v<<1, ">");
-			l = 1;
-		}
-		skip = l + 1;
-		goto nxt;
-	}
-	else if (cls.key_dest == key_message)
+	if (cls.key_dest == key_message)
 	{
 		if (chat_team)
 		{
@@ -20298,7 +20239,7 @@ void Con_DrawNotify ()
 			skip = 5;
 		}
 
-nxt:	s = chat_buffer;
+		s = chat_buffer;
 		if (chat_bufferlen > (viddef.width>>3)-(skip+1))
 			s += chat_bufferlen - ((viddef.width>>3)-(skip+1));
 		x = 0;
@@ -20370,7 +20311,7 @@ void SCR_DrawConsole ()
 	if (scr_con_current)
 		Con_DrawConsole (scr_con_current);
 	else
-		if (cls.key_dest == key_game || cls.key_dest == key_message || cls.key_dest == key_get)
+		if (cls.key_dest == key_game || cls.key_dest == key_message)
 			Con_DrawNotify ();	// only draw notify in game
 }
 
@@ -24215,7 +24156,7 @@ void Key_Event (int key, bool down)
 	if (down)
 	{
 		key_repeats[key]++;
-		if (m_menudepth || cls.key_dest == key_console || cls.key_dest == key_message)
+		if (cls.key_dest != key_game)
 		{
 			if (key != K_BACKSPACE
 				&& key != K_PAUSE
@@ -24238,17 +24179,8 @@ void Key_Event (int key, bool down)
 				&& key_repeats[key] > 1)
 				return;	// ignore most autorepeats
 		}
-		else
-		{
-			if (key != K_BACKSPACE
-				&& key != K_PAUSE
-				&& key != K_PGUP
-				&& key != K_KP_PGUP
-				&& key != K_PGDN
-				&& key != K_KP_PGDN
-				&& key_repeats[key] > 1)
-				return;	// ignore most autorepeats
-		}
+		else if (key_repeats[key] > 1)
+			return;	// ignore most autorepeats
 
 		if (keydown[K_ALT] && key == K_ENTER)
 		{
@@ -24257,7 +24189,7 @@ void Key_Event (int key, bool down)
 			return;
 		}
 
-		if (key >= 200 && !keybindings[key] && cls.key_dest != key_console)
+		if (key >= 200 && !keybindings[key] && cls.key_dest == key_game)
 			Com_Printf ("^3%s is unbound, hit F4 to set.\n", Key_KeynumToString (key) );
 	}
 	else
@@ -24297,9 +24229,6 @@ void Key_Event (int key, bool down)
 		case key_console:
 			M_Menu_Main_f ();
 			break;
-		case key_get:
-			Key_Get (key);
-			break;
 		default:
 			Com_Error (ERR_FATAL, "Bad cls.key_dest");
 		}
@@ -24320,9 +24249,6 @@ void Key_Event (int key, bool down)
 			anykeydown = 0;
 	}
 
-	if (cls.key_dest != key_game)
-		ClearKeys();
-
 //
 // key up events only generate commands if the game key binding is
 // a button command (leading + sign).  These will occur even in console mode,
@@ -24332,9 +24258,9 @@ void Key_Event (int key, bool down)
 //
 	if (!down)
 	{	//// Berserker: добавил такую же проверку, что чуть ниже, чтобы нажатия клавишь не вызывало срабатывания bind при нахождении в консоли
-		if ( (cls.key_dest == key_menu && menubound[key])
-		|| (cls.key_dest == key_console && !consolekeys[key])
-		|| (cls.key_dest == key_game && ( cls.state == ca_active || !consolekeys[key] ) ) )
+///		if ( (cls.key_dest == key_menu && menubound[key])
+///		|| (cls.key_dest == key_console && !consolekeys[key])
+///		|| (cls.key_dest == key_game) )
 		////
 		{
 			kb = keybindings[key];
@@ -24362,7 +24288,7 @@ void Key_Event (int key, bool down)
 	if (!bind_grab)		/// Berserker: Fixed Q2 bug - невозможно было назначить клавишам типа F5 функцию...
 		if ( (cls.key_dest == key_menu && menubound[key])
 		|| (cls.key_dest == key_console && !consolekeys[key])
-		|| (cls.key_dest == key_game && ( cls.state == ca_active || !consolekeys[key] ) ) )
+		|| (cls.key_dest == key_game) )
 		{
 			kb = keybindings[key];
 			if (kb)
@@ -24395,12 +24321,8 @@ void Key_Event (int key, bool down)
 	case key_menu:
 		M_Keydown (key);
 		break;
-	case key_game:
 	case key_console:
 		Key_Console (key);
-		break;
-	case key_get:
-		Key_Get (key);
 		break;
 	default:
 		Com_Error (ERR_FATAL, "Bad cls.key_dest");
@@ -24463,18 +24385,14 @@ void Con_ToggleConsole_f ()
 	{
 		char	*v;								/// Berserker: при обычном просмотре demo/pic - nextserver пуст, поэтому позволим при вызове консоли убить сервер (demo/pic)
 		v = Cvar_VariableString ("nextserver");	/// Но если смотрим demo/pic с nextserver (это проигрывается игровая demo/pic с последующим вызовом карты) - то консоль недоступна! (Иначе можно убить игру вызвав консоль)
-		if (!v[0])
-		{
-			Cbuf_AddText ("killserver\n");
-			return;
-		}
+		if (!v[0] && cls.key_dest != key_console)
+			Cbuf_AddText("killserver\n");
 	}
 
 	if (cls.state == ca_disconnected && !m_menudepth)
 	{
 		// start the demo loop again
 		Cbuf_AddText ("d1\n");
-		M_ForceMenuOff ();
 		return;
 	}
 
@@ -27300,7 +27218,8 @@ void CL_Disconnect ()
 
 	cl.refdef.blend[0] = cl.refdef.blend[1] = cl.refdef.blend[2] = cl.refdef.blend[3] = 0;
 
-	M_ForceMenuOff();
+	if (cls.key_dest != key_menu)
+		cls.key_dest = key_console;
 
 	cls.connect_time = 0;
 
@@ -39462,7 +39381,6 @@ void StartModGame( void *self )
 //		SetForegroundWindow( glw_state.hWnd );
 //		SetFocus( glw_state.hWnd );
 	}
-	cls.key_dest = key_game;
 #endif
 }
 
@@ -43289,27 +43207,6 @@ JOYSTICK		END
 =========================================================================
 */
 
-void ClearKeys()
-{
-	in_klook.down[0] = in_klook.down[1] = in_klook.state = 0;
-	in_left.down[0] = in_left.down[1] = in_left.state = 0;
-	in_right.down[0] = in_right.down[1] = in_right.state = 0;
-	in_forward.down[0] = in_forward.down[1] = in_forward.state = 0;
-	in_back.down[0] = in_back.down[1] = in_back.state = 0;
-	in_lookup.down[0] = in_lookup.down[1] = in_lookup.state = 0;
-	in_lookdown.down[0] = in_lookdown.down[1] = in_lookdown.state = 0;
-	in_moveleft.down[0] = in_moveleft.down[1] = in_moveleft.state = 0;
-	in_moveright.down[0] = in_moveright.down[1] = in_moveright.state = 0;
-	in_strafe.down[0] = in_strafe.down[1] = in_strafe.state = 0;
-	in_speed.down[0] = in_speed.down[1] = in_speed.state = 0;
-	in_use.down[0] = in_use.down[1] = in_use.state = 0;
-	in_attack.down[0] = in_attack.down[1] = in_attack.state = 0;
-///	in_flashlight.down[0] = in_flashlight.down[1] = in_flashlight.state = 0;	allow flashlight work in the next map
-	in_zoom.down[0] = in_zoom.down[1] = in_zoom.state = 0;
-	in_up.down[0] = in_up.down[1] = in_up.state = 0;
-	in_down.down[0] = in_down.down[1] = in_down.state = 0;
-}
-
 
 /*
 ==================
@@ -43346,8 +43243,6 @@ cmodel_t *CM_LoadMap (char *name, bool clientload, unsigned *checksum)
 
 		Cvar_SetValue ("scr_fps_counter_min", 0);
 		Cvar_SetValue ("scr_fps_counter_max", 0);
-
-		ClearKeys();	//	Berserker (experimental): сбросим все клавиши чтобы не было бага "залипания" при заходе на следующую карту...
 	}
 
 	if ( !strcmp (map_name, name) && (clientload || !Cvar_VariableValue ("flushmap")) )
@@ -44938,10 +44833,7 @@ void Con_ToggleChat_f ()
 	if (cls.key_dest == key_console)
 	{
 		if (cls.state == ca_active)
-		{
 			M_ForceMenuOff ();
-			cls.key_dest = key_game;
-		}
 	}
 	else
 		cls.key_dest = key_console;
@@ -44963,11 +44855,6 @@ void Con_MessageMode2_f ()
 	cls.key_dest = key_message;
 }
 
-
-void Con_Get_f ()
-{
-	cls.key_dest = key_get;
-}
 
 void Con_Clear_f ()
 {
@@ -45063,7 +44950,6 @@ void Con_Init ()
 	Cmd_AddCommand ("togglechat", Con_ToggleChat_f);
 	Cmd_AddCommand ("messagemode", Con_MessageMode_f);
 	Cmd_AddCommand ("messagemode2", Con_MessageMode2_f);
-	Cmd_AddCommand ("get", Con_Get_f);
 	Cmd_AddCommand ("clear", Con_Clear_f);
 	Cmd_AddCommand ("condump", Con_Dump_f);
 	con.initialized = true;
@@ -57684,6 +57570,9 @@ void CL_PrepRefresh ()
 
 	if (TrackIsCombat_old == OLD_TRACK_DISABLED)
 		CL_PlayBackgroundTrack ();
+
+	if (cls.key_dest != key_menu)
+		Cvar_Set ("paused", "0");
 }
 
 void CL_Create_f()
@@ -73559,10 +73448,13 @@ void CL_Userinfo_f ()
 }
 
 
-///void CL_Disconnect_f ()
-///{
-///	Com_Error (ERR_DROP, "Disconnected from server");
-///}
+void CL_Disconnect_f ()
+{
+	if (cls.state != ca_disconnected)
+	{
+		Com_Error(ERR_DROP, "Disconnected from server");
+	}
+}
 
 
 void CL_Quit_f ()
@@ -73586,10 +73478,6 @@ void CL_Connect_f ()
 	if (Com_ServerState ())
 	{	// if running a local server, kill it and reissue
 		SV_Shutdown (va("Server quit\n", msg), false);
-	}
-	else
-	{
-		CL_Disconnect ();
 	}
 
 	server = Cmd_Argv (1);
@@ -73626,7 +73514,6 @@ void CL_Reconnect_f ()
 	if (cls.state == ca_connected)
 	{
 		Com_Printf ("reconnecting...\n");
-///		cls.state = ca_connected;
 		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
 		MSG_WriteString (&cls.netchan.message, "new");
 		return;
@@ -80759,7 +80646,7 @@ CL_FixUpGender();	// Berserker: на старте вычислим gender и м�
 	Cmd_AddCommand ("userinfo", CL_Userinfo_f);
 	Cmd_AddCommand ("snd_restart", CL_Snd_Restart_f);
 	Cmd_AddCommand ("changing", CL_Changing_f);
-///	Cmd_AddCommand ("disconnect", CL_Disconnect_f);
+	Cmd_AddCommand ("disconnect", CL_Disconnect_f);
 	Cmd_AddCommand ("record", CL_Record_f);
 	Cmd_AddCommand ("stop", CL_Stop_f);
 	Cmd_AddCommand ("quit", CL_Quit_f);
@@ -82638,7 +82525,11 @@ void M_PopMenu ()
 		m_keyfunc = m_layers[m_menudepth].key;
 	}
 	else
+	{
 		M_ForceMenuOff ();
+		if (cls.state == ca_disconnected)
+			cls.key_dest = key_console;
+	}
 }
 
 
@@ -82651,7 +82542,6 @@ void StartGame()
 	Cvar_SetValue( "coop", 0 );
 
 	Cbuf_AddText ("loading ; killserver ; wait ; newgame\n");
-	cls.key_dest = key_game;
 }
 
 

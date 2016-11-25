@@ -3282,7 +3282,6 @@ void R_SaveRenderState();
 void R_RestoreRenderState();
 void Draw_PicSized(int x, int y, float sx, float sy, char *pic);
 void KeyUp (kbutton_t *b);
-void ClearKeys();
 void BeginFrame();
 void End_Frame();
 void Info_SetValueForKey (char *s, char *key, char *value);
