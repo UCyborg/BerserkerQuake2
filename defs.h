@@ -1174,7 +1174,8 @@ typedef struct
 	bool		texshaders;
 	bool		vbo;
 	bool		vp;					// true - vertex programs ENABLED
-	bool		wgl_swap_control_tear;
+	bool		gl_swap_control;
+	bool		gl_swap_control_tear;
 	int			occlusion;
 	bool		arb_multisample;
 	bool		nv_multisample_hint;

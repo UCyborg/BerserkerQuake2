@@ -4609,9 +4609,8 @@ void R_Register ()
 bool VID_SetupGLWindow(int width, int height, bool fullscreen, int hz);
 bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 {
-	cvar_t		*vid_xpos, *vid_ypos;
 	int			x, y;
-	int			nSamples = max((int)r_multiSamples->value, 1);
+	int			nSamples = (unsigned)r_multiSamples->value;
 	int			realSamples;
 
 	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -4623,10 +4622,12 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-	vid_xpos = Cvar_Get("vid_xpos", "0", 0);
-	vid_ypos = Cvar_Get("vid_ypos", "0", 0);
-	x = vid_xpos->value;
-	y = vid_ypos->value;
+	x = (int)vid_xpos->value;
+	y = (int)vid_ypos->value;
+	vid_xpos->modified = vid_ypos->modified = false;
+
+	nSamples = CeilPowerOfTwo(nSamples);
+	if (nSamples > 16) nSamples = 16;
 
 	for (; nSamples >= 2; nSamples >>= 1)
 	{
@@ -4659,7 +4660,7 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 		else
 		{
 			Com_Printf("^1failed\n");
-			Com_Printf("^1SDL_CreateWindow failed: %s", SDL_GetError());
+			Com_Printf("^1SDL_CreateWindow failed: %s\n", SDL_GetError());
 			return false;
 		}
 	}
@@ -4669,7 +4670,7 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 	{
 		SDL_DestroyWindow(hWnd);
 		hWnd = NULL;
-		Com_Printf("^1SDL_GL_CreateContext failed: %s", SDL_GetError());
+		Com_Printf("^1SDL_GL_CreateContext failed: %s\n", SDL_GetError());
 		return false;
 	}
 
@@ -4682,23 +4683,41 @@ bool VID_CreateGLWindow(int width, int height, bool fullscreen, int hz)
 	else
 		gl_config.arb_multisample = false;
 
-	Com_Printf("^3Adaptive VSYNC");
+	if (nSamples != realSamples)
+		Cvar_ForceSetValue("r_multiSamples", realSamples);
 
-	if (!SDL_GL_SetSwapInterval(-1))
+	Com_Printf("^3VSYNC");
+
+	if (!SDL_GL_SetSwapInterval(1))
 	{
 		Com_Printf("^2 supported\n");
-		gl_config.wgl_swap_control_tear = true;
+		gl_config.gl_swap_control = true;
+
+		Com_Printf("^3Adaptive VSYNC");
+
+		if (!SDL_GL_SetSwapInterval(-1))
+		{
+			Com_Printf("^2 supported\n");
+			gl_config.gl_swap_control_tear = true;
+		}
+		else
+		{
+			Com_Printf("^1 not supported\n");
+			gl_config.gl_swap_control_tear = false;
+		}
 	}
 	else
 	{
 		Com_Printf("^1 not supported\n");
-		gl_config.wgl_swap_control_tear = false;
+		gl_config.gl_swap_control = false;
 	}
 
 	Com_Printf("Using SDL video driver: %s\n", SDL_GetCurrentVideoDriver());
 	SetGamma(vid_gamma->value, vid_bright->value, vid_contrast->value);
 
-	return VID_SetupGLWindow(width, height, fullscreen, hz);
+	if (fullscreen)
+		return VID_SetupGLWindow(width, height, fullscreen, hz);
+	return true;
 }
 
 
@@ -4743,10 +4762,6 @@ bool VID_SetupGLWindow(int width, int height, bool fullscreen, int hz)
 			SDL_SetWindowSize(hWnd, width, height);
 			gl_state.fullscreen = false;
 		}
-
-		// let the sound and input subsystems know about the new window
-		viddef.width = width;
-		viddef.height = height;
 
 		return true;
 	}
@@ -4793,6 +4808,10 @@ rserr_t GLimp_SetMode( int *pwidth, int *pheight, int mode, bool fullscreen, int
 			return rserr_invalid_fullscreen;
 		return rserr_unknown;
 	}
+
+	// let the sound and input subsystems know about the new window
+	viddef.width = width;
+	viddef.height = height;
 
 	return rserr_ok;
 }
@@ -6407,8 +6426,10 @@ void ApplyChanges( void *unused )
 	Cvar_SetValue( "r_picmip", 3 - s_tq_slider.curvalue );
 	Cvar_SetValue( "r_picmip_bump", 3 - s_tq_slider.curvalue );
 	Cvar_SetValue( "r_fullscreen", s_fs_box.curvalue );
-	Cvar_SetValue( "r_swapinterval"/*"r_finish"*/, s_finish_box.curvalue );
-	Cvar_SetValue( "r_nvMultisampleFilterHint", s_nvhint_box.curvalue );
+	if (gl_config.gl_swap_control)
+		Cvar_SetValue( "r_swapinterval"/*"r_finish"*/, s_finish_box.curvalue );
+	if (gl_config.nv_multisample_hint)
+		Cvar_SetValue( "r_nvMultisampleFilterHint", s_nvhint_box.curvalue );
 	Cvar_SetValue( "r_mode", s_mode_list.curvalue );
 	Cvar_SetValue( "r_modulate", s_lmscale_slider.curvalue * 0.1 );
 	Cvar_SetValue( "r_overbright", s_bmscale_slider.curvalue );
@@ -6428,10 +6449,11 @@ void ApplyChanges( void *unused )
 		Cvar_SetValue( "r_anisotropy", pow(2.0, s_anisotropy_slider.curvalue-1.0) );
 	else
 		Cvar_SetValue( "r_anisotropy", 0 );
-	if(s_antialias_slider.curvalue > 1)
-		Cvar_ForceSetValue( "r_multiSamples", pow(2.0, s_antialias_slider.curvalue-1.0) );
-	else
-		Cvar_ForceSetValue( "r_multiSamples", 1 );
+	if (gl_config.arb_multisample)
+		if(s_antialias_slider.curvalue > 1)
+			Cvar_ForceSetValue( "r_multiSamples", pow(2.0, s_antialias_slider.curvalue-1.0) );
+		else
+			Cvar_ForceSetValue( "r_multiSamples", 1 );
 
 	/*
 	** update appropriate stuff if we're running OpenGL has been modified
@@ -7170,7 +7192,7 @@ void VID_MenuInit(bool restart)
 ///		Cvar_SetValue( "r_finish", 1 );
 	if(r_swapinterval->value < 0)
 		Cvar_SetValue( "r_swapinterval", 0 );
-	if (gl_config.wgl_swap_control_tear)
+	if (gl_config.gl_swap_control_tear)
 	{
 		if(r_swapinterval->value > 2)
 			Cvar_SetValue( "r_swapinterval", 2 );
@@ -7516,7 +7538,7 @@ mnu3:
 	s_anisotropy_slider.curvalue = goodpos;
 	s_anisotropy_slider.generic.statusbarfunc = Menu_DrawAnisoStatusBar;
 
-	s_antialias_slider.generic.type	= MTYPE_SLIDER;
+	s_antialias_slider.generic.type = MTYPE_SLIDER;
 	s_antialias_slider.generic.x = 0;
 	s_antialias_slider.generic.y = 153;
 	s_antialias_slider.generic.name = "multisampling";
@@ -7526,22 +7548,28 @@ mnu3:
 	s_antialias_slider.curvalue = goodpos_;
 	s_antialias_slider.generic.statusbarfunc = Menu_DrawAaStatusBar;
 
-	s_nvhint_box.generic.type = MTYPE_SPINCONTROL;
-	s_nvhint_box.generic.x	= 0;
-	s_nvhint_box.generic.y	= 162;
-	s_nvhint_box.generic.name	= "filter hint";
-	s_nvhint_box.curvalue = r_nvMultisampleFilterHint->value;
-	s_nvhint_box.itemnames = hint_names;
+	if(gl_config.nv_multisample_hint)
+	{
+		s_nvhint_box.generic.type = MTYPE_SPINCONTROL;
+		s_nvhint_box.generic.x = 0;
+		s_nvhint_box.generic.y = 162;
+		s_nvhint_box.generic.name = "filter hint";
+		s_nvhint_box.curvalue = r_nvMultisampleFilterHint->value;
+		s_nvhint_box.itemnames = hint_names;
+	}
 
-	s_finish_box.generic.type = MTYPE_SPINCONTROL;
-	s_finish_box.generic.x	= 0;
-	s_finish_box.generic.y	= 171;
-	s_finish_box.generic.name	= "frame sync";
-	s_finish_box.curvalue = r_swapinterval->value;
-	if (gl_config.wgl_swap_control_tear)
-		s_finish_box.itemnames = vsync_names;
-	else
-		s_finish_box.itemnames = yesno_names;
+	if(gl_config.gl_swap_control)
+	{
+		s_finish_box.generic.type = MTYPE_SPINCONTROL;
+		s_finish_box.generic.x = 0;
+		s_finish_box.generic.y = 171;
+		s_finish_box.generic.name = "frame sync";
+		s_finish_box.curvalue = r_swapinterval->value;
+		if(gl_config.gl_swap_control_tear)
+			s_finish_box.itemnames = vsync_names;
+		else
+			s_finish_box.itemnames = yesno_names;
+	}
 
 	s_screen_infos_action.generic.type	= MTYPE_ACTION;
 	s_screen_infos_action.generic.x		= 0;
@@ -7582,8 +7610,10 @@ mnu3:
 	Menu_AddItem( &s_opengl_menu, ( void * ) &s_simple);
 	Menu_AddItem( &s_opengl_menu, ( void * ) &s_anisotropy_slider );
 	Menu_AddItem( &s_opengl_menu, ( void * ) &s_antialias_slider );
-	Menu_AddItem( &s_opengl_menu, ( void * ) &s_nvhint_box );
-	Menu_AddItem( &s_opengl_menu, ( void * ) &s_finish_box );
+	if(gl_config.nv_multisample_hint)
+		Menu_AddItem( &s_opengl_menu, ( void * ) &s_nvhint_box );
+	if(gl_config.gl_swap_control)
+		Menu_AddItem( &s_opengl_menu, ( void * ) &s_finish_box );
 	Menu_AddItem( &s_opengl_menu, ( void * ) &s_screen_infos_action );
 	Menu_AddItem( &s_opengl_menu, ( void * ) &s_video_options_action );
 
@@ -10361,23 +10391,16 @@ void GL_UpdateSwapInterval ()
 {
 	if ( r_swapinterval->modified )
 	{
+		if (gl_config.gl_swap_control)
+		{
+			if (r_swapinterval->value == 2 && gl_config.gl_swap_control_tear)
+				SDL_GL_SetSwapInterval(-1);
+			else if (r_swapinterval->value == 1)
+				SDL_GL_SetSwapInterval(1);
+			else
+				SDL_GL_SetSwapInterval(0);
+		}
 		r_swapinterval->modified = false;
-		if (r_swapinterval->value == 2)
-		{
-			if (SDL_GL_SetSwapInterval(-1) == -1)
-			{
-				Com_Printf("^3Late swap tearing failed, trying regular VSYNC: ");
-				if (!SDL_GL_SetSwapInterval(1))
-					Com_Printf("^2ok\n");
-				else
-					Com_Printf("^1failed - %s\n", SDL_GetError());
-			}
-		}
-		else
-		{
-			if (SDL_GL_SetSwapInterval((int)r_swapinterval->value) == -1)
-				Com_Printf("^1SDL_GL_SetSwapInterval(%i) failed: %s\n", (int)r_swapinterval->value, SDL_GetError());
-		}
 	}
 }
 
@@ -45661,13 +45684,10 @@ void SDL_EventProc(SDL_Event *ev)
 			{
 				case SDL_WINDOWEVENT_MOVED:
 				{
-					if (!r_fullscreen->value)
-					{
-						Cvar_SetValue("vid_xpos", (float)ev->window.data1);
-						Cvar_SetValue("vid_ypos", (float)ev->window.data2);
-						vid_xpos->modified = false;
-						vid_ypos->modified = false;
-					}
+					Cvar_SetValue("vid_xpos", (float)ev->window.data1);
+					Cvar_SetValue("vid_ypos", (float)ev->window.data2);
+					vid_xpos->modified = false;
+					vid_ypos->modified = false;
 					break;
 				}
 				case SDL_WINDOWEVENT_MINIMIZED:
@@ -72732,9 +72752,9 @@ void R_MemInfo_f ()
 void VID_Init ()
 {
 	/* Create the video variables so we know how to start the graphics drivers */
-	vid_xpos = Cvar_Get ("vid_xpos", "3", CVAR_ARCHIVE);
+	vid_xpos = Cvar_Get ("vid_xpos", "6", CVAR_ARCHIVE);
 	vid_xpos->help = "X coordinate of Bers@Q2 window position.";
-	vid_ypos = Cvar_Get ("vid_ypos", "22", CVAR_ARCHIVE);
+	vid_ypos = Cvar_Get ("vid_ypos", "44", CVAR_ARCHIVE);
 	vid_ypos->help = "Y coordinate of Bers@Q2 window position.";
 	r_fullscreen = Cvar_Get ("r_fullscreen", "0", CVAR_ARCHIVE|CVAR_VID_LATCH);
 	vid_hz = Cvar_Get ("vid_hz", "0", CVAR_ARCHIVE|CVAR_VID_LATCH);
