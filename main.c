@@ -6460,7 +6460,10 @@ void ApplyChanges( void *unused )
 	*/
 	Check_VidRestart(true);
 
-	M_ForceMenuOff();
+	if (cls.state == ca_disconnected)
+		M_PopMenu();
+	else
+		M_ForceMenuOff();
 }
 
 
@@ -96561,9 +96564,6 @@ void CL_Frame (int msec)
 		}
 	}
 
-	// let the mouse activate or deactivate
-	IN_Frame ();
-
 	// decide the simulation time
 	cls.frametime = extratime/1000.0;
 	cl.time += extratime;
@@ -96598,6 +96598,8 @@ void CL_Frame (int msec)
 
 	// allow rendering DLL change
 	VID_CheckChanges ();
+	// let the mouse activate or deactivate
+	IN_Frame ();
 	if (!cl.refresh_prepped && cls.state == ca_active)
 		CL_PrepRefresh ();
 
