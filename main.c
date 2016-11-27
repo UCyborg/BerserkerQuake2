@@ -4401,7 +4401,7 @@ void R_Register ()
 	r_sp3 = Cvar_Get ("r_sp3", "1", CVAR_VID_LATCH );
 	r_sp3->help = "allow to use sprites sp3 instead sp2.";
 	r_bloom = Cvar_Get ("r_bloom", "2", CVAR_ARCHIVE );		// 0 - no bloom, 1/2/3: 3-brightnest bloom, 1-darker bloom
-	r_bloom->help = "fullscreen bloom effect: 0 - disable, from 1 to 3 - increasing bloom intensity.";
+	r_bloom->help = "bloom effect: 0 - disable, from 1 to 3 - increasing bloom intensity.";
 	r_showbloom = Cvar_Get ("r_showbloom", "0", 0 );
 	r_showbloom->help = "show bloom map (for developer).";
 	r_modlights = Cvar_Get ("r_modlights", "3", CVAR_ARCHIVE );
@@ -5400,32 +5400,29 @@ void R_InitDefaultTextures ()
 	r_screenTexture = r_bloomTexture = r_notexture;	// Чисто для того, чтоб не вылетало на стандартных программах...
 	if(gl_config.screentexture)
 	{
-		if(r_distort->value || r_fullscreen->value)		// r_screenTexture нужна также для bloom !!!
+		if(r_distort->value)		// r_screenTexture нужна также для bloom !!!
 		{
 			memset(trans, 0, gl_config.screenTextureSize[0]*gl_config.screenTextureSize[1]*3);	/// т.к. экран-текстура не квадратная, то произведем её очистку, чтоб не было артефактов вне "экрана" (зеленые чёрточки).
 			r_screenTexture = GL_LoadPic ("r_screenTexture", NULL, (byte*)trans, gl_config.screenTextureSize[0], gl_config.screenTextureSize[1], it_pic, 24, true, 0);	/// динамическую текстуру НЕ сжимаем!!! Иначе тормоза!
 		}
-		if(r_fullscreen->value)
+		unsigned temp = (min(vid.width, vid.height)>>4);	// bloom_size - итоговый размер bloom - в 16 раз меньше
+		bloom_size = 1;
+		while (1)
 		{
-			unsigned temp = (min(vid.width, vid.height)>>4);	// bloom_size - итоговый размер bloom - в 16 раз меньше
-			bloom_size = 1;
-			while (1)
-			{
-				bloom_size *= 2;
-				if(bloom_size >= temp)
-					break;
-			}
-			temp = (min(vid.width, vid.height)>>1);	// max_bloom_size - размер bloomTexture - всего в 2 раза меньше экрана
-			max_bloom_size = 1;
-			while (1)
-			{
-				max_bloom_size *= 2;
-				if(max_bloom_size >= temp)
-					break;
-			}
-///			memset(trans, 0, max_bloom_size*max_bloom_size*3);
-			r_bloomTexture = GL_LoadPic ("r_bloomTexture", NULL, (byte*)trans, max_bloom_size, max_bloom_size, it_pic, 24, true, 0);	/// динамическую текстуру НЕ сжимаем!!! Иначе тормоза!
+			bloom_size *= 2;
+			if(bloom_size >= temp)
+				break;
 		}
+		temp = (min(vid.width, vid.height)>>1);	// max_bloom_size - размер bloomTexture - всего в 2 раза меньше экрана
+		max_bloom_size = 1;
+		while (1)
+		{
+			max_bloom_size *= 2;
+			if(max_bloom_size >= temp)
+				break;
+		}
+///		memset(trans, 0, max_bloom_size*max_bloom_size*3);
+		r_bloomTexture = GL_LoadPic ("r_bloomTexture", NULL, (byte*)trans, max_bloom_size, max_bloom_size, it_pic, 24, true, 0);	/// динамическую текстуру НЕ сжимаем!!! Иначе тормоза!
 	}
 
 	tmp[0][0][0] = tmp[0][0][1] = tmp[0][0][2] = 0;
@@ -10518,8 +10515,9 @@ void SCR_CalcVrect ()
 {
 	int		size;
 
-	if (r_mirrors->value || (r_bloom->value>0 && r_bloom->value<=3 && r_fullscreen->value))
-		Cvar_Set ("viewsize","100");
+	if (!r_simple->value)
+		if (scr_viewsize->value != 100)
+			Cvar_Set("viewsize", "100");
 	else
 	{
 		// bound viewsize
@@ -72428,7 +72426,7 @@ skip:	glEnable( GL_TEXTURE_2D );
 		{
 			R_PolyBlend();
 			// После последнего прорисованного объекта в основном RenderView (не mirror и не SkyWorld) грабим экран для bloom
-			if (!do_bloom && gl_config.screentexture && (r_bloom->value>0 && r_bloom->value<=3 && r_fullscreen->value))
+			if (!do_bloom && gl_config.screentexture && (r_bloom->value>0 && r_bloom->value<=3))
 			{
 				GL_SelectTexture(GL_TEXTURE0);
 				R_GrabScreenToTexture();
@@ -72931,7 +72929,7 @@ void SCR_Init ()
 	scr_draw2d = Cvar_Get("scr_draw2d", "2", 0);
 	scr_draw2d->help = "show 2d info: 0 - disable, 1 - all except a crosshair, 2 - show all.";
 	scr_viewsize = Cvar_Get ("viewsize", "100", 0);
-	scr_viewsize->help = "size of game window, ignored if mirrors or fullscreen bloom present.";
+	scr_viewsize->help = "size of game window, works only with simple renderer.";
 	scr_fps = Cvar_Get ("scr_fps", "0", CVAR_ARCHIVE);
 	scr_fps->help = "show FPS counter.";
 	scr_fps_min = Cvar_Get ("scr_fps_counter_min", "0", 0);
