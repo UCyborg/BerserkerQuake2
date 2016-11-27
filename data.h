@@ -471,6 +471,7 @@ cvar_t	*msg;
 cvar_t	*hand;
 cvar_t	*fov;
 cvar_t	*zoomfov;
+cvar_t	*zoomspeed;
 cvar_t	*gender;					/// тут пол игрока, в норм. условиях д.б. male, female или none
 char	gender_model[MAX_QPATH];		/// тут храним модель игрока
 model_t	*gender_mdl;

@@ -14314,28 +14314,27 @@ void CL_CalcViewValues ()
 		cl.refdef.fov_x = ops->fov + lerp * (ps->fov - ops->fov);
 
 	// Berserker: client-side zoom
-	if ((cl.refdef.fov_x < 89.9 || cl.refdef.fov_x > 90.1) || cl.attractloop)
-	{	// если FOV != 90 (не установлен флаг "Fixed FOV") или проигрывается демо
-		float delta = (Sys_Milliseconds() - fov_time);	// Дельта FOV, основано на интервале времени от предыдущего до текущего клиентского кадра.
-														// (Даже не пришлось умножать на scale, скорость смены FOV отличная. Сделать цвар?)
-		if ( in_zoom.state & 3 )
-		{	// +zoom
-			float dfov = cl.refdef.fov_x - zoomfov->value;
-			if (dfov > 0)
-			{
-				fov_delta += delta;
-				if (fov_delta > dfov)
-					fov_delta = dfov;
-			}
+	// если FOV != 90 (не установлен флаг "Fixed FOV") или проигрывается демо
+	float delta = ((Sys_Milliseconds() - fov_time) * zoomspeed->value);	// Дельта FOV, основано на интервале времени от предыдущего до текущего клиентского кадра.
+													// (Даже не пришлось умножать на scale, скорость смены FOV отличная. Сделать цвар?)
+													// UCyborg: cvar created :)
+	if (in_zoom.state & 3)
+	{	// +zoom
+		float dfov = cl.refdef.fov_x - zoomfov->value;
+		if (dfov > 0)
+		{
+			fov_delta += delta;
+			if (fov_delta > dfov)
+				fov_delta = dfov;
 		}
-		else
-		{	// -zoom
-			fov_delta -= delta;
-			if (fov_delta < 0)
-				fov_delta = 0;
-		}
-		cl.refdef.fov_x -= fov_delta;
 	}
+	else
+	{	// -zoom
+		fov_delta -= delta;
+		if (fov_delta < 0)
+			fov_delta = 0;
+	}
+	cl.refdef.fov_x -= fov_delta;
 	in_zoom.state &= ~2;
 	fov_time = Sys_Milliseconds ();
 
@@ -80640,10 +80639,12 @@ void CL_InitLocal ()
 	if(railtrailradius->value<0 || railtrailradius->value>127)
 		Cvar_SetValue("rail_radius", 3);
 
-	fov = Cvar_Get ("fov", "91", CVAR_USERINFO|CVAR_ARCHIVE);
-	fov->help = "Field Of Vision (degrees). '90' will block '+zoom'.";
+	fov = Cvar_Get ("fov", "90", CVAR_USERINFO|CVAR_ARCHIVE);
+	fov->help = "Field Of Vision (degrees)";
 	zoomfov = Cvar_Get ("zoomfov", "22.5", CVAR_ARCHIVE);
 	zoomfov->help = "lower FOV limit for '+zoom'";
+	zoomspeed = Cvar_Get ("zoomspeed", "1", CVAR_ARCHIVE);
+	zoomspeed->help = "zooming-in speed for '+zoom'";
 	gender = Cvar_Get ("gender", "male", CVAR_USERINFO | /*CVAR_ARCHIVE*/CVAR_NOSET);
 ///	gender_auto = Cvar_Get ("gender_auto", "1", CVAR_ARCHIVE);
 ///	gender->modified = false; // clear this so we know when user sets it manually
