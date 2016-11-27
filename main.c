@@ -28017,6 +28017,10 @@ void Key_SetBinding (int keynum, char *binding)
 		keybindings[keynum] = NULL;
 	}
 
+	// don't bind to empty string
+	if(!binding[0])
+		return;
+
 // allocate memory for new binding
 	l = strlen (binding);
 	nw = (char*) Z_Malloc (l+1, true);
