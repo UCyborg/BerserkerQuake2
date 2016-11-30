@@ -30698,6 +30698,7 @@ do the apropriate things.
 */
 void Com_Quit()
 {
+	CL_Disconnect();
 	SV_Shutdown("Server quit\n", false);
 	CL_Shutdown();
 
@@ -73418,7 +73419,6 @@ void CL_Disconnect_f ()
 
 void CL_Quit_f ()
 {
-	CL_Disconnect ();
 	Com_Quit ();
 }
 
