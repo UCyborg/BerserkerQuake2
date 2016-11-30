@@ -2443,9 +2443,31 @@ void IN_ActivateMouse ()
 }
 
 
+/*
+================
+IN_ShutdownJoystick
+================
+*/
+void IN_ShutdownJoystick ()
+{
+	if (joy)
+	{
+		SDL_JoystickClose (joy);
+		joy = NULL;
+		SDL_QuitSubSystem (SDL_INIT_JOYSTICK);
+
+		// old button and POV states default to no buttons pressed
+		joy_oldbuttonstate = joy_oldhatstate = 0;
+
+		joy_advancedinit = false;
+	}
+}
+
+
 void IN_Shutdown ()
 {
 	IN_DeactivateMouse ();
+	IN_ShutdownJoystick ();
 }
 
 
@@ -42856,98 +42878,52 @@ IN_StartupJoystick
 */
 void IN_StartupJoystick ()
 {
-	/*int			numdevs;
-	JOYCAPS		jc;
-	MMRESULT	mmr;*/
-	cvar_t		*cv;
-
- 	// assume no joystick
-	joy_avail = false;
+	int				numdevs;
+	cvar_t			*cv;
+	cvar_t			*joy_index;
+	char			*joy_name;
 
 	// abort startup if user requests no joystick
 	cv = Cvar_Get ("in_initjoy", "1", CVAR_NOSET);
 	if ( !cv->value )
 		return;
 
-	/*SDL_InitSubSystem(SDL_INIT_JOYSTICK);
-
-	// verify joystick driver is present
-	if ((numdevs = SDL_NumJoysticks ()) == 0)
+	if (SDL_InitSubSystem (SDL_INIT_JOYSTICK) < 0)
 	{
-//		Com_Printf ("joystick not found -- driver not present\n\n");
+		Com_Printf ("^1SDL_InitSubSystem(SDL_INIT_JOYSTICK) failed: %s\n\n", SDL_GetError ());
 		return;
-	}
-
-	// cycle through the joystick ids for the first valid one
-	for (joy_id=0 ; joy_id<numdevs ; joy_id++)
-	{
-		memset (&ji, 0, sizeof(ji));
-		ji.dwSize = sizeof(ji);
-		ji.dwFlags = JOY_RETURNCENTERED;
-
-		if ((mmr = joyGetPosEx (joy_id, &ji)) == JOYERR_NOERROR)
-			break;
 	}
 
 	// abort startup if we didn't find a valid joystick
-	if (mmr != JOYERR_NOERROR)
+	if ((numdevs = SDL_NumJoysticks ()) == 0)
 	{
-		Com_Printf ("joystick not found -- no valid joysticks (%x)\n\n", mmr);
+		Com_Printf ("joystick not found -- no valid joysticks\n\n");
+		SDL_QuitSubSystem (SDL_INIT_JOYSTICK);
 		return;
 	}
 
-	// get the capabilities of the selected joystick
-	// abort startup if command fails
-	memset (&jc, 0, sizeof(jc));
-	if ((mmr = joyGetDevCaps (joy_id, &jc, sizeof(jc))) != JOYERR_NOERROR)
+	// allow user to specify joystick by index
+	joy_index = Cvar_Get ("joy_index", "0", CVAR_NOSET);
+
+	if ((joy = SDL_JoystickOpen ((int)joy_index->value)) == NULL)
 	{
-		Com_Printf ("joystick not found -- invalid joystick capabilities (%x)\n\n", mmr);
+		Com_Printf ("^1Failed to open joystick %i\n\n", (int)joy_index->value);
+		SDL_QuitSubSystem (SDL_INIT_JOYSTICK);
 		return;
 	}
+
+	if (joy_name = SDL_JoystickName (joy))
+		Cvar_Set ("joy_name", joy_name);
 
 	// save the joystick's number of buttons and POV status
-	joy_numbuttons = jc.wNumButtons;
-	joy_haspov = jc.wCaps & JOYCAPS_HASPOV;
+	joy_numbuttons = SDL_JoystickNumButtons (joy);
+	joy_numhats = SDL_JoystickNumHats (joy);
 
-	// old button and POV states default to no buttons pressed
-	joy_oldbuttonstate = joy_oldpovstate = 0;
+	// old-school way for querying joystick state - no events
+	SDL_JoystickEventState (SDL_IGNORE);
 
-	// mark the joystick as available and advanced initialization not completed
-	// this is needed as cvars are not available during initialization
-
-	joy_avail = true;
-	joy_advancedinit = false;
-
-	Com_Printf ("joystick detected\n\n"); */
+	Com_Printf ("joystick detected\n\n");
 }
-
-
-/*
-===========
-RawValuePointer
-===========
-*/
-/*
-PDWORD RawValuePointer (int axis)
-{
-	switch (axis)
-	{
-	case JOY_AXIS_X:
-		return &ji.dwXpos;
-	case JOY_AXIS_Y:
-		return &ji.dwYpos;
-	case JOY_AXIS_Z:
-		return &ji.dwZpos;
-	case JOY_AXIS_R:
-		return &ji.dwRpos;
-	case JOY_AXIS_U:
-		return &ji.dwUpos;
-	default:				// shut up compiler
-	case JOY_AXIS_V:
-		return &ji.dwVpos;
-	}
-}
-*/
 
 
 /*
@@ -42959,7 +42935,7 @@ void Joy_AdvancedUpdate_f ()
 {
 	// called once by IN_ReadJoystick and by user whenever an update is needed
 	// cvars are now available
-	/*int	i;
+	int	i;
 	DWORD dwTemp;
 
 	// initialize all the maps
@@ -42967,7 +42943,6 @@ void Joy_AdvancedUpdate_f ()
 	{
 		dwAxisMap[i] = AxisNada;
 		dwControlMap[i] = JOY_ABSOLUTE_AXIS;
-		pdwRawValue[i] = RawValuePointer(i);
 	}
 
 	if( joy_advanced->value == 0.0)
@@ -43008,12 +42983,6 @@ void Joy_AdvancedUpdate_f ()
 		dwAxisMap[JOY_AXIS_V] = dwTemp & 0x0000000f;
 		dwControlMap[JOY_AXIS_V] = dwTemp & JOY_RELATIVE_AXIS;
 	}
-
-	// compute the axes to collect from DirectInput
-	joy_flags = JOY_RETURNCENTERED | JOY_RETURNBUTTONS | JOY_RETURNPOV;
-	for (i = 0; i < JOY_MAX_AXES; i++)
-		if (dwAxisMap[i] != AxisNada)
-			joy_flags |= dwAxisFlags[i];*/
 }
 
 
@@ -43024,89 +42993,61 @@ IN_Commands
 */
 void IN_Commands ()
 {
-	/*int		i, key_index;
-	DWORD	buttonstate, povstate;
+	int		i, key_index;
+	DWORD	buttonstate, hatstate;
 
-	if (!joy_avail)
+	if (joy && in_joystick->value)
+	{
+		SDL_JoystickUpdate ();
+		for (i=0 ; i < JOY_MAX_AXES ; i++)
+			if (dwAxisMap[i] != AxisNada)
+				dwRawValue[i] = SDL_JoystickGetAxis (joy, i);
+	}
+	else
 		return;
 
 	// loop through the joystick buttons
 	// key a joystick event or auxillary event for higher number buttons for each state change
-	buttonstate = ji.dwButtons;
 	for (i=0 ; i < joy_numbuttons ; i++)
 	{
+		buttonstate |= SDL_JoystickGetButton (joy, i) << i;
 		if ( (buttonstate & (1<<i)) && !(joy_oldbuttonstate & (1<<i)) )
 		{
 			key_index = (i < 4) ? K_JOY1 : K_AUX1;
-			Key_Event (key_index + i, true, 0);
+			Key_Event (key_index + i, true);
 		}
 
 		if ( !(buttonstate & (1<<i)) && (joy_oldbuttonstate & (1<<i)) )
 		{
 			key_index = (i < 4) ? K_JOY1 : K_AUX1;
-			Key_Event (key_index + i, false, 0);
+			Key_Event (key_index + i, false);
 		}
 	}
 	joy_oldbuttonstate = buttonstate;
 
-	if (joy_haspov)
+	if (joy_numhats)
 	{
 		// convert POV information into 4 bits of state information
 		// this avoids any potential problems related to moving from one
 		// direction to another without going through the center position
-		povstate = 0;
-		if(ji.dwPOV != JOY_POVCENTERED)
-		{
-			if (ji.dwPOV == JOY_POVFORWARD)
-				povstate |= 0x01;
-			if (ji.dwPOV == JOY_POVRIGHT)
-				povstate |= 0x02;
-			if (ji.dwPOV == JOY_POVBACKWARD)
-				povstate |= 0x04;
-			if (ji.dwPOV == JOY_POVLEFT)
-				povstate |= 0x08;
-		}
+		// SDL does the conversion :D
+
+		hatstate = SDL_JoystickGetHat (joy, 0);
 		// determine which bits have changed and key an auxillary event for each change
 		for (i=0 ; i < 4 ; i++)
 		{
-			if ( (povstate & (1<<i)) && !(joy_oldpovstate & (1<<i)) )
+			if ( (hatstate & (1<<i)) && !(joy_oldhatstate & (1<<i)) )
 			{
-				Key_Event (K_AUX29 + i, true, 0);
+				Key_Event (K_AUX29 + i, true);
 			}
 
-			if ( !(povstate & (1<<i)) && (joy_oldpovstate & (1<<i)) )
+			if ( !(hatstate & (1<<i)) && (joy_oldhatstate & (1<<i)) )
 			{
-				Key_Event (K_AUX29 + i, false, 0);
+				Key_Event (K_AUX29 + i, false);
 			}
 		}
-		joy_oldpovstate = povstate;
-	}*/
-}
-
-
-/*
-===============
-IN_ReadJoystick
-===============
-*/
-bool IN_ReadJoystick ()
-{
-	/*memset (&ji, 0, sizeof(ji));
-	ji.dwSize = sizeof(ji);
-	ji.dwFlags = joy_flags;
-
-	if (joyGetPosEx (joy_id, &ji) == JOYERR_NOERROR)
-		return true;
-	else
-	{
-		// read error occurred
-		// turning off the joystick seems too harsh for 1 read error,\
-		// but what should be done?
-		// Com_Printf ("IN_ReadJoystick: no response\n");
-		// joy_avail = false;
-		return false;
-	}*/
-	return false;
+		joy_oldhatstate = hatstate;
+	}
 }
 
 
@@ -43117,7 +43058,7 @@ IN_JoyMove
 */
 void IN_JoyMove (usercmd_t *cmd)
 {
-	/*float	speed, aspeed;
+	float	speed, aspeed;
 	float	fAxisValue;
 	int		i;
 
@@ -43130,11 +43071,7 @@ void IN_JoyMove (usercmd_t *cmd)
 	}
 
 	// verify joystick is available and that the user wants to use it
-	if (!joy_avail || !in_joystick->value)
-		return;
-
-	// collect the joystick data, if possible
-	if (IN_ReadJoystick () != true)
+	if (!joy || !in_joystick->value)
 		return;
 
 	if ( (in_speed.state & 1) ^ (int)cl_run->value)
@@ -43147,9 +43084,7 @@ void IN_JoyMove (usercmd_t *cmd)
 	for (i = 0; i < JOY_MAX_AXES; i++)
 	{
 		// get the floating point zero-centered, potentially-inverted data for the current axis
-		fAxisValue = (float) *pdwRawValue[i];
-		// move centerpoint to zero
-		fAxisValue -= 32768.0;
+		fAxisValue = (float) dwRawValue[i];
 
 		// convert range from -32768..32767 to -1..1
 		fAxisValue /= 32768.0;
@@ -43225,7 +43160,7 @@ void IN_JoyMove (usercmd_t *cmd)
 		default:
 			break;
 		}
-	}*/
+	}
 }
 
 /*
@@ -45273,7 +45208,7 @@ void Options_MenuInit()
 	s_options_sensitivity_slider.generic.y		= 50;
 	s_options_sensitivity_slider.generic.name	= "mouse speed";
 	s_options_sensitivity_slider.generic.callback = MouseSpeedFunc;
-	s_options_sensitivity_slider.minvalue		= 2;
+	s_options_sensitivity_slider.minvalue		= 0.5f;
 	s_options_sensitivity_slider.maxvalue		= 50/*22*/;
 
 	s_options_alwaysrun_box.generic.type = MTYPE_SPINCONTROL;

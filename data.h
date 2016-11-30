@@ -725,6 +725,10 @@ enum _ControlList
 	AxisNada = 0, AxisForward, AxisLook, AxisSide, AxisTurn, AxisUp
 };
 
+DWORD	dwAxisMap[JOY_MAX_AXES];
+DWORD	dwControlMap[JOY_MAX_AXES];
+Sint16	dwRawValue[JOY_MAX_AXES];
+
 // none of these cvars are saved over a session
 // this means that advanced controller configuration needs to be executed
 // each time.  this avoids any problems with getting back to a default usage
@@ -749,14 +753,12 @@ cvar_t	*joy_yawsensitivity;
 cvar_t	*joy_upthreshold;
 cvar_t	*joy_upsensitivity;
 
-bool	joy_avail, joy_advancedinit, joy_haspov;
-/*DWORD	joy_oldbuttonstate, joy_oldpovstate;
+bool	joy_advancedinit;
+DWORD	joy_oldbuttonstate, joy_oldhatstate;
 
-int			joy_id;
-DWORD		joy_flags;
-DWORD		joy_numbuttons;
-
-static JOYINFOEX	ji;*/
+SDL_Joystick	*joy;
+int			joy_numbuttons;
+int			joy_numhats;
 
 vec3_t vec3_origin = {0,0,0};
 
