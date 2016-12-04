@@ -579,9 +579,9 @@ can mess up the server's parsing
 */
 bool Info_Validate (char *s)
 {
-	if (strstr (s, "\""))
+	if (strchr (s, '\"'))
 		return false;
-	if (strstr (s, ";"))
+	if (strchr (s, ';'))
 		return false;
 	return true;
 }
@@ -594,7 +594,7 @@ void Info_RemoveKey (char *s, char *key)
 	char	value[MAX_INFO_STRING];
 	char	*o;
 
-	if (strstr (key, "\\"))
+	if (strchr (key, '\\'))
 		return;
 
 	while (1)
@@ -640,19 +640,19 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 	int		c;
 	int		maxsize = MAX_INFO_STRING;
 
-	if (strstr (key, "\\") || strstr (value, "\\") )
+	if (strchr (key, '\\') )
 	{
 		gi.dprintf/*Com_Printf*/ ("Can't use keys or values with a \\\n");
 		return;
 	}
 
-	if (strstr (key, ";") )
+	if (strchr (key, ';') )
 	{
 		gi.dprintf/*Com_Printf*/ ("Can't use keys or values with a semicolon\n");
 		return;
 	}
 
-	if (strstr (key, "\"") || strstr (value, "\"") )
+	if (strchr (key, '\"') )
 	{
 		gi.dprintf/*Com_Printf*/ ("Can't use keys or values with a \"\n");
 		return;
@@ -10250,7 +10250,7 @@ void BeginIntermission (edict_t *targ)
 	level.intermissiontime = level.time;
 	level.changemap = targ->map;
 
-	if (strstr(level.changemap, "*"))
+	if (strchr(level.changemap, '*'))
 	{
 		if (coop->value)
 		{
@@ -10361,7 +10361,7 @@ void use_target_changelevel (edict_t *self, edict_t *other, edict_t *activator)
 	}
 
 	// if going to a new unit, clear cross triggers
-	if (strstr(self->map, "*"))
+	if (strchr(self->map, '*'))
 		game.serverflags &= ~(SFL_CROSS_TRIGGER_MASK);
 
 //// Berserker: allow DF_SAME_LEVEL to affects on exit from level

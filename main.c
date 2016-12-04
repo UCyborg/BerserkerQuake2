@@ -17926,7 +17926,7 @@ void CL_ParseClientinfo (int player)
 	if (hack)
 	{
 		char clname[MAX_QPATH];
-		t = strstr(cl.configstrings[player+cs_playerskins], "\\");
+		t = strchr(cl.configstrings[player+cs_playerskins], '\\');
 		len = t - cl.configstrings[player+cs_playerskins];
 		if (len>=sizeof(clname))
 			len=sizeof(clname)-1;
@@ -28513,11 +28513,11 @@ void Cbuf_InsertText (char *text)
 
 static bool Cvar_InfoValidate (char *s)
 {
-	if (strstr (s, "\\"))
+	if (strchr (s, '\\'))
 		return false;
-	if (strstr (s, "\""))
+	if (strchr (s, '\"'))
 		return false;
-	if (strstr (s, ";"))
+	if (strchr (s, ';'))
 		return false;
 	return true;
 }
@@ -29101,8 +29101,8 @@ void FS_SetGamedir (char *dir)
 {
 	searchpath_t	*next;
 
-	if (strstr(dir, "..") || strstr(dir, "/")
-		|| strstr(dir, "\\") || strstr(dir, ":") )
+	if (strstr(dir, "..") || strchr(dir, '/')
+		|| strchr(dir, '\\') || strchr(dir, ':') )
 	{
 		Com_Printf ("^3Gamedir should be a single filename, not a path\n");
 		return;
@@ -30623,8 +30623,6 @@ char *Sys_GetCurrentUser ()
 
 void Sys_Init ()
 {
-	char str[64];
-
 	if (SDL_InitSubSystem(SDL_INIT_TIMER) < 0)
 		Sys_Error("SDL_InitSubSystem(SDL_INIT_TIMER) failed: %s\n", SDL_GetError());
 
@@ -30973,7 +30971,7 @@ void Info_RemoveKey (char *s, char *key)
 	char	value[MAX_INFO_STRING];
 	char	*o;
 
-	if (strstr (key, "\\"))
+	if (strchr (key, '\\'))
 		return;
 
 	while (1)
@@ -31019,19 +31017,19 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 	int		c;
 	int		maxsize = MAX_INFO_STRING;
 
-	if (strstr (key, "\\") || strstr (value, "\\") )
+	if (strchr (key, '\\') )
 	{
 		Com_Printf ("^1Can't use keys or values with a \\\n");
 		return;
 	}
 
-	if (strstr (key, ";") )
+	if (strchr (key, ';') )
 	{
 		Com_Printf ("^1Can't use keys or values with a semicolon\n");
 		return;
 	}
 
-	if (strstr (key, "\"") || strstr (value, "\"") )
+	if (strchr (key, '\"') )
 	{
 		Com_Printf ("^1Can't use keys or values with a \"\n");
 		return;
@@ -34960,9 +34958,9 @@ step1:			if (!(trace.surface->flags & SURF_NODRAW))
 			goto defgibs;
 		if (!ci->model)
 			goto defgibs;
-		slash = strstr(ci->model->name, "\\");
+		slash = strchr(ci->model->name, '\\');
 		if (!slash)
-			slash = strstr(ci->model->name, "/");
+			slash = strchr(ci->model->name, '/');
 		if (slash)
 		{
 			if (!Q_strncasecmp(slash+1, "male", 4))
@@ -40292,7 +40290,7 @@ void SV_BeginDownload_f()
 		// now maps (note special case for maps, must not be in pak)
 		|| ((strncmp(name, "maps/", 5/*6*/) == 0 && !allow_download_maps->value))	/// Fixed by Berserker
 		// MUST be in a subdirectory
-		|| !strstr (name, "/") )
+		|| !strchr (name, '/') )
 	{	// don't allow anything with .. path
 deny:	MSG_WriteByte (&sv_client->netchan.message, svc_download);
 		MSG_WriteShort (&sv_client->netchan.message, -1);
@@ -43680,7 +43678,7 @@ void SV_Map (bool attractloop, char *levelstring, bool loadgame)
 	strcpy (level, levelstring);
 
 	// if there is a + in the map, set nextserver to the remainder
-	ch = strstr(level, "+");
+	ch = strchr(level, '+');
 	if (ch)
 	{
 		*ch = 0;
@@ -43694,7 +43692,7 @@ void SV_Map (bool attractloop, char *levelstring, bool loadgame)
 		Cvar_Set ("nextserver", "gamemap \"*base1\"");
 
 	// if there is a $, use the remainder as a spawnpoint
-	ch = strstr(level, "$");
+	ch = strchr(level, '$');
 	if (ch)
 	{
 		*ch = 0;
@@ -43866,7 +43864,7 @@ void SV_Map_f ()
 
 	// if not a pic, demo or cinematic, check to make sure the level exists
 	map = Cmd_Argv(1);
-	if (!strstr (map, "."))
+	if (!strchr (map, '.'))
 	{
 		Com_sprintf (expanded, sizeof(expanded), "maps/%s.bsp", map);
 		if (FS_LoadFile (expanded, NULL) == -1)
@@ -44328,7 +44326,7 @@ void SV_Savegame_f ()
 	}
 
 	dir = Cmd_Argv(1);
-	if (strstr (dir, "..") || strstr (dir, "/") || strstr (dir, "\\") )
+	if (strstr (dir, "..") || strchr (dir, '/') || strchr (dir, '\\') )
 	{
 		Com_Printf ("^1Bad savedir.\n");
 		return;
@@ -44450,7 +44448,7 @@ void SV_Loadgame_f ()
 	Com_Printf ("Loading game...\n");
 
 	dir = Cmd_Argv(1);
-	if (strstr (dir, "..") || strstr (dir, "/") || strstr (dir, "\\") )
+	if (strstr (dir, "..") || strchr (dir, '/') || strchr (dir, '\\') )
 	{
 		Com_Printf ("^1Bad savedir.\n");
 		return;
@@ -50779,7 +50777,7 @@ void Mod_LoadAliasMD3Model ( model_t *mod, void *buffer, float scale, bool inver
 				memcpy (name, pinskin->name, MD3_MAX_PATH);
 			while (RepairPath(name));	/// Berserker: устранение безобразия типа в модели: "models\monsters\tank\tris.md2" - там есть строки типа "models/monsters/tank/../ctank/skin.pcx"
 			int len = strlen(name);
-			char *dot = strstr (name, ".");
+			char *dot = strchr (name, '.');
 			if (dot)
 				k = strlen(dot);
 			else
@@ -51399,7 +51397,7 @@ bool Mod_LoadAliasModel (model_t *mod, void *buffer, float scale, bool invert, i
 			FS_UnionPath(mod->name, (char *)pheader + pheader->ofs_skins + i*MAX_SKINNAME, name, sizeof(name));
 		while (RepairPath(name));	/// Berserker: устранение безобразия типа в модели: "models\monsters\tank\tris.md2" - там есть строки типа "models/monsters/tank/../ctank/skin.pcx"
 		int len = strlen(name);
-		char *dot = strstr (name, ".");
+		char *dot = strchr (name, '.');
 		if (dot)
 			j = strlen(dot);
 		else
@@ -68972,7 +68970,7 @@ stp:;		int sk = -1;		// skin counter
 					}
 					while (RepairPath(name));	/// Berserker: устранение безобразия типа в модели: "models\monsters\tank\tris.md2" - там есть строки типа "models/monsters/tank/../ctank/skin.pcx"
 					i=strlen(name);
-					char *dot = strstr (name, ".");
+					char *dot = strchr (name, '.');
 					int kl;
 					if (dot)
 						kl = strlen(dot);
@@ -95578,7 +95576,7 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 	// isolate the player's name
 	strncpy(ci->name, s, sizeof(ci->name));
 	ci->name[sizeof(ci->name)-1] = 0;
-	t = strstr (s, "\\");
+	t = strchr (s, '\\');
 	if (t)
 	{
 		ci->name[t-s] = 0;
@@ -95603,9 +95601,9 @@ void CL_LoadClientinfo (clientinfo_t *ci, char *s)
 	{
 		// isolate the model name
 		strcpy (model_name, s);
-		t = strstr(model_name, "/");
+		t = strchr(model_name, '/');
 		if (!t)
-			t = strstr(model_name, "\\");
+			t = strchr(model_name, '\\');
 		if (!t)
 			t = model_name;
 		*t = 0;
