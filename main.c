@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma comment (lib, "jpeg8.lib")
 #pragma comment (lib, "libpng16.lib")
 #pragma comment (lib, "libvorbisfile.lib")
-#pragma comment (lib, "zlibwapi.lib")
+#pragma comment (lib, "zlib.lib")
 #pragma comment (lib, "opengl32.lib")
 #pragma comment (lib, "wsock32.lib")
 #pragma comment (lib, "SDL2.lib")
@@ -1350,13 +1350,13 @@ int ovc_seek (void *datasource, ogg_int64_t offset, int whence)
 	switch (whence)
 	{
 		case SEEK_SET:
-			ogg_file_buffer_pos = (unsigned long)offset;
+			ogg_file_buffer_pos = (unsigned)offset;
 			break;
 		case SEEK_CUR:
-			ogg_file_buffer_pos += (unsigned long)offset;
+			ogg_file_buffer_pos += (unsigned)offset;
 			break;
 		case SEEK_END:
-			ogg_file_buffer_pos = ogg_file_buffer_size + (unsigned long)offset;
+			ogg_file_buffer_pos = ogg_file_buffer_size + (unsigned)offset;
 			break;
 	}
 	//проверим выход положения за пределы буфера
@@ -3723,7 +3723,7 @@ void imgfree()
 bool imgalloc(int width, int height)
 {
 	BYTE *bp,**rp;
-	long n;
+	int n;
 
 	int img_rowbytes = ((DWORD)width * 24 + 31) / 32 * 4;		// 24 bits is hard coded for GL_RGB
 	int img_imgbytes = img_rowbytes * height;
@@ -5498,13 +5498,13 @@ static inline float fastsqrt(float n)
 // Fast reciprocal square root (Quake 3 game code)
 static inline float RSqrt(float number)
 {
-	long i;
+	int i;
 	float x2, y;
 	const float threehalfs = 1.5f;
 
 	x2 = number * 0.5f;
 	y  = number;
-	i  = * (long *) &y;						// evil floating point bit level hacking
+	i  = * (int *) &y;						// evil floating point bit level hacking
 	i  = 0x5f3759df - (i >> 1);             // what the fuck?
 	y  = * (float *) &i;
 	y  = y * (threehalfs - (x2 * y * y));   // 1st iteration
@@ -11388,7 +11388,7 @@ int DDSDecompressDXT1(ddsBuffer_t *dds, int width, int height, unsigned char *pi
 	for(y = 0; y < yBlocks; y++)
 	{
 		/* 8 bytes per block */
-		block = (ddsColorBlock_t *) ((unsigned)dds->data + y * xBlocks * 8);
+		block = (ddsColorBlock_t *) (dds->data + y * xBlocks * 8);
 
 		/* walk x */
 		for(x = 0; x < xBlocks; x++, block++)
@@ -11431,7 +11431,7 @@ int DDSDecompressDXT3(ddsBuffer_t *dds, int width, int height, unsigned char *pi
 	for(y = 0; y < yBlocks; y++)
 	{
 		/* 8 bytes per block, 1 block for alpha, 1 block for color */
-		block = (ddsColorBlock_t *) ((unsigned)dds->data + y * xBlocks * 16);
+		block = (ddsColorBlock_t *) (dds->data + y * xBlocks * 16);
 
 		/* walk x */
 		for(x = 0; x < xBlocks; x++, block++)
@@ -11484,7 +11484,7 @@ int DDSDecompressDXT5(ddsBuffer_t *dds, int width, int height, unsigned char *pi
 	for(y = 0; y < yBlocks; y++)
 	{
 		/* 8 bytes per block, 1 block for alpha, 1 block for color */
-		block = (ddsColorBlock_t *) ((unsigned)dds->data + y * xBlocks * 16);
+		block = (ddsColorBlock_t *) (dds->data + y * xBlocks * 16);
 
 		/* walk x */
 		for(x = 0; x < xBlocks; x++, block++)
@@ -18914,9 +18914,9 @@ int entitycmpfnc( const entity_t *a, const entity_t *b )
 {
 	// all other models are sorted by model then skin
 	if ( a->model == b->model )
-		return ( ( int ) a->skin - ( int ) b->skin );
+		return (int)( ( ptrdiff_t ) a->skin - ( ptrdiff_t ) b->skin );
 	else
-		return ( ( int ) a->model - ( int ) b->model );
+		return (int)( ( ptrdiff_t ) a->model - ( ptrdiff_t ) b->model );
 }
 
 void Draw_GetPicSize (int *w, int *h, char *pic)
@@ -19079,10 +19079,10 @@ bool R_MarkEntityLeaves(entity_t *ent, byte *fatvis)
 			vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 		// вырезаем кластеры, которых нет в списке leafs
 		for (i=0 ; i<((r_worldmodel->numleafs+31)>>5)/*MAX_MAP_LEAFS/32*/ ; i++)
-			((long *)vis_)[i] &= ((long *)vis)[i];
+			((int *)vis_)[i] &= ((int *)vis)[i];
 		// копируем результат в fatvis
 		for (i=0 ; i<longs ; i++)
-			((long *)fatvis)[i] |= ((long *)vis_)[i];
+			((int *)fatvis)[i] |= ((int *)vis_)[i];
 	}
 	return (areas[0] || areas[1] || areas[2] || areas[3] || areas[4] || areas[5] || areas[6] || areas[7] || areas[8]);
 }
@@ -19151,10 +19151,10 @@ bool R_MarkEmitLeaves(emit_t *emit, byte *fatvis)
 			vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 		// вырезаем кластеры, которых нет в списке leafs
 		for (i=0 ; i<((r_worldmodel->numleafs+31)>>5)/*MAX_MAP_LEAFS/32*/ ; i++)
-			((long *)vis_)[i] &= ((long *)vis)[i];
+			((int *)vis_)[i] &= ((int *)vis)[i];
 		// копируем результат в fatvis
 		for (i=0 ; i<longs ; i++)
-			((long *)fatvis)[i] |= ((long *)vis_)[i];
+			((int *)fatvis)[i] |= ((int *)vis_)[i];
 	}
 	return (areas[0] || areas[1] || areas[2] || areas[3] || areas[4] || areas[5] || areas[6] || areas[7] || areas[8]);
 }
@@ -19265,11 +19265,12 @@ int entityDistcmpfnc( const entity_t *a, const entity_t *b )
 
 int entityDistcmpfnc2( const entity_t *a, const entity_t *b )
 {
-	int	skna, sknb, dsta, dstb;
+	ptrdiff_t	skna, sknb;
+	int			dsta, dstb;
 
 	// all other models are sorted by skin then distance
-	skna = ( int ) a->skin;
-	sknb = ( int ) b->skin;
+	skna = ( ptrdiff_t ) a->skin;
+	sknb = ( ptrdiff_t ) b->skin;
 	dsta = ( int ) a->dist;
 	dstb = ( int ) b->dist;
 
@@ -28934,7 +28935,7 @@ int Sys_FindFiles (const char *path, const char *pattern, char **fileList, int m
 	bool			findRes = true;
 #else
 	struct dirent	**n_file;
-	long			hFile;
+	int				hFile;
 #endif
 	char			searchPath[MAX_OSPATH];
 	char			findPath[MAX_OSPATH];
@@ -29146,10 +29147,10 @@ void FS_SetGamedir (char *dir)
 }
 
 
-char	findbase[MAX_OSPATH];
-char	findpath[MAX_OSPATH];
+char		findbase[MAX_OSPATH];
+char		findpath[MAX_OSPATH];
 #ifdef _WIN32
-long	findhandle;
+intptr_t	findhandle;
 #else
 char	findpattern[MAX_OSPATH];
 DIR		*fdir;
@@ -30627,7 +30628,7 @@ void Sys_Init ()
 		Sys_Error("SDL_InitSubSystem(SDL_INIT_TIMER) failed: %s\n", SDL_GetError());
 
 	// This doesn't display, console buffer too small?
-	Com_Printf("*** Berserker@Quake2 ***\nBuilt: %s %s\nBinary code: x86 (%s)\n\n", __DATE__, __TIME__, BUILDSTRING);
+	Com_Printf("*** Berserker@Quake2 ***\nBuilt: %s %s\nBinary code: %s (%s)\n\n", __DATE__, __TIME__, BERS_ARCH_STR, BUILDSTRING);
 
 	// Get user name
 	sys_username = Cvar_Get("sys_username", Sys_GetCurrentUser(), CVAR_NOSET);
@@ -37639,9 +37640,6 @@ Handles offseting and rotation of the end points for moving and
 rotating entities
 ==================
 */
-#ifdef _MSC_VER
-#pragma optimize( "", off )
-#endif
 trace_t		CM_TransformedBoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t maxs, int headnode, int brushmask, vec3_t origin, vec3_t angles)
 {
 	trace_t		trace;
@@ -37697,9 +37695,6 @@ trace_t		CM_TransformedBoxTrace (vec3_t start, vec3_t end, vec3_t mins, vec3_t m
 
 	return trace;
 }
-#ifdef _MSC_VER
-#pragma optimize( "", on )
-#endif
 
 
 void SV_ClipMoveToEntities ( moveclip_t *clip )
@@ -42425,10 +42420,10 @@ bool R_MarkAliasLeaves(alink_t *alias)
 			vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 		// вырезаем кластеры, которых нет в списке leafs
 		for (i=0 ; i<((r_worldmodel->numleafs+31)>>5)/*MAX_MAP_LEAFS/32*/ ; i++)
-			((long *)vis_)[i] &= ((long *)vis)[i];
+			((int *)vis_)[i] &= ((int *)vis)[i];
 		// копируем результат в alias->vis
 		for (i=0 ; i<longs ; i++)
-			((long *)alias->vis)[i] |= ((long *)vis_)[i];
+			((int *)alias->vis)[i] |= ((int *)vis_)[i];
 	}
 	return (alias->areas[0] || alias->areas[1] || alias->areas[2] || alias->areas[3] || alias->areas[4] || alias->areas[5] || alias->areas[6] || alias->areas[7] || alias->areas[8]);
 }
@@ -42880,7 +42875,7 @@ void IN_StartupJoystick ()
 	int				numdevs;
 	cvar_t			*cv;
 	cvar_t			*joy_index;
-	char			*joy_name;
+	const char		*joy_name;
 
 	// abort startup if user requests no joystick
 	cv = Cvar_Get ("in_initjoy", "1", CVAR_NOSET);
@@ -47283,9 +47278,9 @@ force:	glDisable (GL_DEPTH_TEST);
 }
 
 
-static inline long Q_ftol( float f )
+static inline int Q_ftol( float f )
 {
-	return (long)f;
+	return (int)f;
 }
 
 
@@ -56177,7 +56172,7 @@ bool HasSharedLeafs(byte *v1, byte *v2)
 	int i, j, k, l;
 	l = r_worldmodel->numleafs>>5;
 	for (i=0 ; i<l ; i++)
-		if (((long *)v1)[i] & ((long *)v2)[i])
+		if (((int *)v1)[i] & ((int *)v2)[i])
 			return true;
 
 	l = (r_worldmodel->numleafs & ~0x1f);
@@ -56467,7 +56462,7 @@ skip:	Com_DPrintf("Out of BSP, rejected light at %f %f %f\n", currentshadowlight
 		vis[leafs[i]>>3] |= (1<<(leafs[i]&7));
 	// вырезаем кластеры, которых нет в списке leafs
 	for (i=0 ; i<((r_worldmodel->numleafs+31)>>5)/*MAX_MAP_LEAFS/32*/ ; i++)
-		((long *)currentshadowlight->vis)[i] &= ((long *)vis)[i];
+		((int *)currentshadowlight->vis)[i] &= ((int *)vis)[i];
 
 	return true;
 }
@@ -56896,8 +56891,8 @@ yes:		//a. far cap
 	}
 
 	//finish them off with 0
-	lightCmds[lightPos++].asInt = 0;
-	volumeCmds[volumePos++].asInt = 0;
+	lightCmds[lightPos++].asVoid = NULL;
+	volumeCmds[volumePos++].asVoid = NULL;
 
 	numLightCmds = lightPos;
 	numVolumeCmds = volumePos;
@@ -57966,16 +57961,16 @@ bool R_CalcSLight()
 
 	if(numLightCmds >= 1)
 	{
-		currentshadowlight->lightCmds = (lightcmd_t *)Z_Malloc(numLightCmds * 4, true);
-		memcpy(currentshadowlight->lightCmds, &lightCmdsBuff, numLightCmds * 4);
+		currentshadowlight->lightCmds = (lightcmd_t *)Z_Malloc(numLightCmds * sizeof(lightcmd_t), true);
+		memcpy(currentshadowlight->lightCmds, &lightCmdsBuff, numLightCmds * sizeof(lightcmd_t));
 	}
 	else
 		currentshadowlight->lightCmds = NULL;
 
 	if(numVolumeCmds >= 2)
 	{
-		currentshadowlight->volumeCmds = (lightcmd_t *)Z_Malloc(numVolumeCmds * 4, true);
-		memcpy(currentshadowlight->volumeCmds, &volumeCmdsBuff, numVolumeCmds * 4);
+		currentshadowlight->volumeCmds = (lightcmd_t *)Z_Malloc(numVolumeCmds * sizeof(lightcmd_t), true);
+		memcpy(currentshadowlight->volumeCmds, &volumeCmdsBuff, numVolumeCmds * sizeof(lightcmd_t));
 		CreateShadowVBO();
 	}
 	else
@@ -71016,7 +71011,7 @@ void R_SetupMirrorFrame(byte *vis)
 	{
 		byte *tempvis = CM_ClusterPVS(CM_LeafCluster(CM_PointLeafnum(s->center)));
 		for (j=0 ; j<longs ; j++)
-			((long *)viewvis)[j] |= ((long *)tempvis)[j];
+			((int *)viewvis)[j] |= ((int *)tempvis)[j];
 	}
 
 	r_visframecount++;
@@ -71104,7 +71099,7 @@ void R_RenderShadowVolumes(bool SelfShadow, bool all)
 		if (currentshadowlight->volumeCmds && currentshadowlight->lightCmds/* && !currentshadowlight->noshadow*/)	//При noshadow и так volumeCmds == NULL
 			R_DrawWorldShadowVolumes();
 		if (!currentshadowlight->noshadow2)
-			R_DrawEntsShadowVolumes(NULL, true);
+			R_DrawEntsShadowVolumes(false, true);
 	}
 	else
 	{
@@ -71741,7 +71736,7 @@ void R_RenderLighting(bool SelfShadow, bool all)
 				R_DrawWorldBumped();
 			R_DrawLightBrushes();
 		}
-		R_DrawLightAliases(NULL, true);
+		R_DrawLightAliases(false, true);
 	}
 	else
 	{
@@ -72231,10 +72226,10 @@ la:			// проверим, есть ли поверхности, которые 
 			case 0:
 				// Рисуем все тени
 				if(shad)
-					R_RenderShadowVolumes(NULL, true);
+					R_RenderShadowVolumes(false, true);
 
 				// Рисуем все освещенные плоскости
-				R_RenderLighting(NULL, true);
+				R_RenderLighting(false, true);
 				break;
 			case 1:
 				// Рисуем тени от обычных сурфов
@@ -72934,8 +72929,7 @@ void GL_BuildPolygonFromSurface(msurface_t *fa)
 	fa->polys = poly;
 	poly->numverts = lnumverts;
 	// reserve space for neighbour pointers
-	// FIXME: pointers don't need to be 4 bytes
-	poly->neighbours = (glpoly_t **)Hunk_Alloc (lnumverts*4, true);
+	poly->neighbours = (glpoly_t **)Hunk_Alloc (lnumverts*sizeof(glpoly_t *), true);
 
 /// Berserker's QUAKE2 RETEXTURING !!!
 	if (fa->texinfo->image->fx_original_size_s != -1)
@@ -75735,7 +75729,7 @@ void CL_SelectBrush_f ()
 	trace_t trace = CL_PMTraceWorld (r_origin, vec3_origin, vec3_origin, end, MASK_SOLID);
 	if(/*trace.surface->name &&*/ trace.surface->name[0])
 	{
-		if ((int)trace.ent>1)
+		if (trace.ent)
 		{
 			if (cl.model_draw[trace.ent->s.modelindex]->type==mod_brush)
 			{
@@ -82094,7 +82088,7 @@ void S_SoundInfo_f()
 	Com_Printf("%5d samplepos\n", dma.samplepos);
 	Com_Printf("%5d samplebits\n", dma.samplebits);
 	Com_Printf("%5d speed\n", dma.speed);
-	Com_Printf("0x%x dma buffer\n", dma.buffer);
+	Com_Printf("%p dma buffer\n", dma.buffer);
 	Com_Printf("SDL audio driver: %s\n", SDL_GetCurrentAudioDriver());
 
 	if ( s_playingFile[0] )
@@ -86193,7 +86187,7 @@ float CalcFov (float fov_x, float width, float height)
 		Com_Error (ERR_DROP, "Bad fov: %f", fov_x);
 
 // Micro$oft's VS2008 compiler lame!  >:E
-#ifndef _MSC_VER
+#if 1
 	x = width/tan(fov_x/360*M_PI);		/* This caused: fatal error C1001: An internal error has occurred in the compiler. */
 #else
 	float half_fov_deg = fov_x / 2.0;
@@ -87975,7 +87969,7 @@ void Common_Init (int argc, char **argv)
 	}
 
 ///	s = va("%4.2f %s x86 %s", VERSION, __DATE__, BUILDSTRING);
-	s = va("Berserker@Quake2 %s %s x86 (%s)", __DATE__, __TIME__,  BUILDSTRING);
+	s = va("Berserker@Quake2 %s %s %s (%s)", __DATE__, __TIME__, BERS_ARCH_STR, BUILDSTRING);
 	Cvar_Get ("version", s, CVAR_SERVERINFO|CVAR_NOSET);
 
 	if (dedicated->value)
@@ -89873,7 +89867,7 @@ void SV_FatPVS (vec3_t org)
 			continue;		// already have the cluster we want
 		src = CM_ClusterPVS(leafs[i]);
 		for (j=0 ; j<longs ; j++)
-			((long *)fatpvs)[j] |= ((long *)src)[j];
+			((int *)fatpvs)[j] |= ((int *)src)[j];
 	}
 }
 
@@ -96134,7 +96128,7 @@ void S_WriteLinearBlastStereo16 ()
 }
 
 
-void S_TransferStereo16 (unsigned long *pbuf, int endtime)
+void S_TransferStereo16 (unsigned *pbuf, int endtime)
 {
 	int		lpos;
 	int		lpaintedtime;
@@ -96172,9 +96166,9 @@ void S_TransferPaintBuffer(int endtime)
 	int 	*p;
 	int 	step;
 	int		val;
-	unsigned long *pbuf;
+	unsigned *pbuf;
 
-	pbuf = (unsigned long *)dma.buffer;
+	pbuf = (unsigned *)dma.buffer;
 
 	if (s_testsound->value)
 	{
@@ -96575,8 +96569,6 @@ int main(int argc, char *argv[])
 
 	BuildSqrtTable();				// Ставим в самом начале, т.к. может понадобиться fastsqrt...
 	M_SelectMath(0, true, true);	// set default progs
-
-	r1q2_title[0] = /*r1q2_down_title[0] = */0;
 
 	Common_Init (argc, argv);
 	M_SelectMath(16, false, true);	// fast select progs

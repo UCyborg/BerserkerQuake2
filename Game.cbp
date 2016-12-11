@@ -22,19 +22,15 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O3" />
+					<Add option="-fno-strict-aliasing" />
 					<Add option="-DNDEBUG" />
 				</Compiler>
-				<Linker>
-					<Add option="-s" />
-				</Linker>
 			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="-m32" />
 		</Compiler>
 		<Linker>
-			<Add option="-m32" />
 			<Add option="-lm" />
 		</Linker>
 		<Unit filename="compat.h" />

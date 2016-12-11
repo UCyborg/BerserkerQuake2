@@ -3,7 +3,7 @@
 
 #ifndef _WIN32
 typedef unsigned short WORD;
-typedef unsigned long DWORD;
+typedef unsigned int DWORD;
 typedef unsigned char BYTE;
 typedef unsigned char byte;
 typedef unsigned short SHORT;

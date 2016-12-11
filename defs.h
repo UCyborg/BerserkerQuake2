@@ -1976,11 +1976,36 @@ typedef struct
 } server_t;
 
 
-#ifdef NDEBUG
-#define BUILDSTRING "Win32 RELEASE"
+#if defined(__GNUC__)
+# if defined(__i386__)
+#  define BERS_ARCH_STR		"686"
+# elif defined(__x86_64__)
+#  define BERS_ARCH_STR		"x86_64"
+# endif
+#elif defined(_WIN64)
+# define BERS_ARCH_STR		"x86_64"
+#elif defined(_WIN32)
+# define BERS_ARCH_STR		"x86"
 #else
-#define BUILDSTRING "Win32 DEBUG"
+# define BERS_ARCH_STR		"unknown"
 #endif
+
+#if defined(__linux__)
+# define BERS_OS_STR		"Linux"
+#elif defined(_WIN64)
+# define BERS_OS_STR		"Win64"
+#elif defined(_WIN32)
+# define BERS_OS_STR		"Win32"
+#else
+# define BERS_OS_STR		"Unknown"
+#endif
+
+#ifdef NDEBUG
+#define BUILDSTRING BERS_OS_STR " Release"
+#else
+#define BUILDSTRING BERS_OS_STR " Debug"
+#endif
+
 
 //
 // functions exported by the game subsystem
@@ -2771,7 +2796,7 @@ typedef struct
 // (type *)STRUCT_FROM_LINK(link_t *link, type, member)
 // ent = STRUCT_FROM_LINK(link,entity_t,order)
 // FIXME: remove this mess!
-#define	STRUCT_FROM_LINK(l,t,m) ((t *)((byte *)l - (int)&(((t *)0)->m)))
+#define	STRUCT_FROM_LINK(l,t,m) ((t *)((byte *)l - (byte *)&(((t *)NULL)->m)))
 
 #define	EDICT_FROM_AREA(l) STRUCT_FROM_LINK(l,edict_t,area)
 
@@ -4042,7 +4067,7 @@ typedef struct
 #define	SIDE_ON		2
 
 /* MD4 context. */
-typedef unsigned long int UINT4;
+typedef unsigned int UINT4;
 typedef struct
 {
 	UINT4	state[4];				/* state (ABCD) */

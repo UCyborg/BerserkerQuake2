@@ -1,9 +1,9 @@
 CC=gcc
 
-CFLAGS=-w -m32 -O3 -DNDEBUG
+CFLAGS=-w -O3 -fno-strict-aliasing -DNDEBUG
 
-LDFLAGS_ENGINE=-m32 -lm -lGL -lvorbis -lvorbisfile -lz -lSDL2 -lpng -ljpeg -s
-LDFLAGS_GAME=-shared -m32 -lm -s
+LDFLAGS_ENGINE=-lm -lGL -lvorbis -lvorbisfile -lz -lSDL2 -lpng -ljpeg
+LDFLAGS_GAME=-shared -lm
 
 ENGINE_SOURCES=main.c unpak.c unzip.c
 GAME_SOURCES=game.c

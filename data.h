@@ -1283,7 +1283,7 @@ bool		credits_backgroundFile = false;
 //глобальные переменные для буферизованой подгрузки ogg
 byte			*ogg_file_buffer = NULL;
 unsigned		ogg_file_buffer_size = 0;
-unsigned long	ogg_file_buffer_pos = 0;
+unsigned		ogg_file_buffer_pos = 0;
 
 channel_t   channels[MAX_CHANNELS];
 

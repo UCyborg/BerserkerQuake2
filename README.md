@@ -19,9 +19,6 @@ libvorbisfile
 SDL2 (v2.0.4 or newer recommended)  
 zlib
 
-Please note that you must install 32-bit versions of these libraries
-because 64-bit issues are yet to be resolved.
-
 Code::Blocks project files are also provided.
 
 ### Building on Windows
@@ -40,6 +37,11 @@ DIR video
 FILE pak0.pak  
 FILE pak1.pak  
 FILE pak2.pak  
+
+If you have original Quake II CD, the data can be found in Install/Data/baseq2. In addition to
+the data on the CD, you will need the data from the official Quake II 3.20 patch, which you can get from
+http://deponie.yamagi.org/quake2/idstuff/q2-3.20-x86-full-ctf.exe
+The content can be extracted using any utility for working with ZIP files.
 
 Make a distintctive folder where you want to run Berserker from. The folder must be
 writable, so somewhere under home folder should do for Linux users. Inside it, create

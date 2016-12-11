@@ -3,8 +3,6 @@
 
 #include "unzip.h"
 
-typedef unsigned long DWORD;
-
 extern void *Z_Malloc (int size, bool crash);
 extern void Z_Free (void *ptr);
 
@@ -13,12 +11,12 @@ extern FILE *FS_Fopen(const char *name, const char *mode);
 
 typedef struct
 {
-	char		name[256];
-	DWORD		attr;
-	DWORD		offset;
-	DWORD		size;
-	DWORD		c_offset;
-	unsigned	hash;	// hash of name
+	char			name[256];
+	unsigned		attr;
+	unsigned		offset;
+	unsigned		size;
+	unsigned		c_offset;
+	unsigned		hash;	// hash of name
 } fileinfo_t;
 
 unsigned Com_HashKey (const char *string);

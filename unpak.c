@@ -77,7 +77,7 @@ bool b_stricmp(char *str1, char *str2)
 int		PackFileGet (zipfile_t *pf, char *fname, char **buf, unsigned hash)
 {
 	int			num;
-	DWORD		err;
+	unsigned	err;
 	for (num = 0; num<(int)pf->gi.number_entry; num++)
 		if (hash == pf->fi[num].hash)
 			if (!b_stricmp(fname, pf->fi[num].name))
