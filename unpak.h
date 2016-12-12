@@ -1,28 +1,31 @@
 #ifndef UNPAK_H
 #define	UNPAK_H
 
-#include "unzip.h"
+#include <stdbool.h>
+#include <minizip/unzip.h>
 
-extern void *Z_Malloc (int size, bool crash);
-extern void Z_Free (void *ptr);
+#ifdef _WIN32
+#define MAX_OSPATH			256		// max length of a filesystem pathname (same as MAX_PATH)
+#else
+#define MAX_OSPATH			4096	// max length of a filesystem pathname
+#endif
 
-#include <stdio.h>
-extern FILE *FS_Fopen(const char *name, const char *mode);
+void *Z_Malloc (int size, bool crash);
+void Z_Free (void *ptr);
+unsigned Com_HashKey (const char *string);
 
 typedef struct
 {
-	char			name[256];
-	unsigned		attr;
-	unsigned		offset;
-	unsigned		size;
-	unsigned		c_offset;
+	char			name[MAX_OSPATH];
+	uLong			attr;
+	unz_file_pos	pos;
+	uLong			size;
 	unsigned		hash;	// hash of name
 } fileinfo_t;
 
-unsigned Com_HashKey (const char *string);
 typedef struct
 {
-	char			pak_name[256];
+	char			pak_name[MAX_OSPATH];
 	unzFile			uf;
 	unz_global_info	gi;
 	fileinfo_t		*fi;
@@ -36,6 +39,6 @@ int		PackFileGetFilesNumber (zipfile_t *pf);
 ///char	*PackFileGetFileName (zipfile_t *pf, int num);
 bool	b_stricmp(char *str1, char *str2);
 char	b_chrt(char sym);
-int	PackFileSize (zipfile_t *pf, char *fname, unsigned hash);
+int		PackFileSize (zipfile_t *pf, char *fname, unsigned hash);
 
 #endif

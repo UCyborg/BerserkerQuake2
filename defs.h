@@ -131,7 +131,12 @@ typedef struct cvar_s
 
 
 #define	MAX_QPATH			64		// max length of a berserker game pathname
-#define	MAX_OSPATH			128		// max length of a filesystem pathname
+
+#ifdef _WIN32
+#define MAX_OSPATH			256		// max length of a filesystem pathname (same as MAX_PATH)
+#else
+#define MAX_OSPATH			4096	// max length of a filesystem pathname
+#endif
 
 typedef struct
 {

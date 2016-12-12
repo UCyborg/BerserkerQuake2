@@ -39,9 +39,6 @@
     <ClInclude Include="..\unpak.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\unzip.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\warpsin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -54,9 +51,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\unpak.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\unzip.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

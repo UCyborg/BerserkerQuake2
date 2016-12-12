@@ -36,6 +36,7 @@
 			<Add option="-lvorbis" />
 			<Add option="-lvorbisfile" />
 			<Add option="-lz" />
+			<Add option="-lminizip" />
 			<Add option="-lSDL2" />
 			<Add option="-lpng" />
 			<Add option="-ljpeg" />
@@ -54,10 +55,8 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="unpak.h" />
-		<Unit filename="unzip.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="unzip.h" />
 		<Unit filename="warpsin.h" />
 		<Extensions>
 			<code_completion />

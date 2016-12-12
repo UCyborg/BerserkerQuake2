@@ -32205,19 +32205,20 @@ void SV_WriteServerFile (bool autosave)
 	// these will be things like coop, skill, deathmatch, etc
 	for (var = cvar_vars ; var ; var=var->next)
 	{
+		char cvarname[128];
 		if (!(var->flags & CVAR_LATCH))
 			continue;
-		if (strlen(var->name) >= sizeof(name)-1
+		if (strlen(var->name) >= sizeof(cvarname)-1
 			|| strlen(var->string) >= sizeof(string)-1)
 		{
 			Com_Printf ("^1Cvar too long: %s = %s\n", var->name, var->string);
 			continue;
 		}
-		memset (name, 0, sizeof(name));
+		memset (cvarname, 0, sizeof(cvarname));
 		memset (string, 0, sizeof(string));
-		strcpy (name, var->name);
+		strcpy (cvarname, var->name);
 		strcpy (string, var->string);
-		fwrite (name, 1, sizeof(name), f);
+		fwrite (cvarname, 1, sizeof(cvarname), f);
 		fwrite (string, 1, sizeof(string), f);
 	}
 
@@ -44402,11 +44403,12 @@ void SV_ReadServerFile ()
 	// these will be things like coop, skill, deathmatch, etc
 	while (1)
 	{
-		if (!fread (name, 1, sizeof(name), f))
+		char cvarname[128];
+		if (!fread (cvarname, 1, sizeof(cvarname), f))
 			break;
 		FS_Read (string, sizeof(string), f);
-		Com_DPrintf ("Set %s = %s\n", name, string);
-		Cvar_ForceSet (name, string);
+		Com_DPrintf ("Set %s = %s\n", cvarname, string);
+		Cvar_ForceSet (cvarname, string);
 	}
 
 	fclose (f);

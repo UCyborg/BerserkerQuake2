@@ -165,14 +165,12 @@
     <ClInclude Include="..\m_frames.h" />
     <ClInclude Include="..\q2pal.h" />
     <ClInclude Include="..\unpak.h" />
-    <ClInclude Include="..\unzip.h" />
     <ClInclude Include="..\warpsin.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\main.c" />
     <ClCompile Include="..\unpak.c" />
-    <ClCompile Include="..\unzip.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Berserker.rc" />

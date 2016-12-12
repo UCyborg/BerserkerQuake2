@@ -17,7 +17,8 @@ libogg
 libvorbis  
 libvorbisfile  
 SDL2 (v2.0.4 or newer recommended)  
-zlib
+zlib  
+libminizip
 
 Code::Blocks project files are also provided.
 

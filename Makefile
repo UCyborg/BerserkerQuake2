@@ -2,10 +2,10 @@ CC=gcc
 
 CFLAGS=-w -O3 -fno-strict-aliasing -DNDEBUG
 
-LDFLAGS_ENGINE=-lm -lGL -lvorbis -lvorbisfile -lz -lSDL2 -lpng -ljpeg
-LDFLAGS_GAME=-shared -lm
+LDFLAGS_ENGINE=-lm -lGL -lvorbis -lvorbisfile -lz -lminizip -lSDL2 -lpng -ljpeg
+LDFLAGS_GAME=-shared -fPIC -lm
 
-ENGINE_SOURCES=main.c unpak.c unzip.c
+ENGINE_SOURCES=main.c unpak.c
 GAME_SOURCES=game.c
 
 ENGINE_OBJECTS=$(ENGINE_SOURCES:.c=.o)
@@ -20,7 +20,7 @@ $(ENGINE_OBJECTS): %.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(GAME_OBJECTS): %.o : %.c
-	$(CC) $(CFLAGS) -fvisibility=hidden -c $< -o $@
+	$(CC) $(CFLAGS) -fPIC -fvisibility=hidden -c $< -o $@
 
 $(ENGINE_EXE): $(ENGINE_OBJECTS)
 	$(CC) -o $@ $(ENGINE_OBJECTS) $(LDFLAGS_ENGINE)
