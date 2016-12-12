@@ -21,9 +21,6 @@ along with Berserker@Quake2 source code; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ===========================================================================
 */
-#ifdef _MSC_VER
-#pragma warning( disable: 4305 4309 4244 4018 4551 4116 4146 4800 4996)
-#endif
 
 /// Berserker: при добавлении библиотеки OGG Vorbis, я столкнулся с проблемой порчи памяти в Debug-проекте.
 /// Т.о. стало невозможно производить отладку.
@@ -31,17 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /// Спасибо Кирилл aka Kirk Barnes!
 /////	#pragma comment (lib, "OGG/Lib/ogg_static.lib")
 /////	#pragma comment (lib, "OGG/Lib/vorbisfile_static.lib")
-
-#ifdef _WIN32
-#pragma comment (lib, "jpeg8.lib")
-#pragma comment (lib, "libpng16.lib")
-#pragma comment (lib, "libvorbisfile.lib")
-#pragma comment (lib, "zlib.lib")
-#pragma comment (lib, "opengl32.lib")
-#pragma comment (lib, "wsock32.lib")
-#pragma comment (lib, "SDL2.lib")
-#pragma comment (lib, "SDL2main.lib")
-#endif
 
 #include "defs.h"
 #include "data.h"
