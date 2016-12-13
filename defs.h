@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <pwd.h>
+#include <sched.h>
 #endif
 #include <time.h>
 #include <math.h>
@@ -1181,6 +1182,7 @@ typedef struct
 	bool		vp;					// true - vertex programs ENABLED
 	bool		gl_swap_control;
 	bool		gl_swap_control_tear;
+	bool		vsync_active;
 	int			occlusion;
 	bool		arb_multisample;
 	bool		nv_multisample_hint;

@@ -10402,11 +10402,20 @@ void GL_UpdateSwapInterval ()
 		if (gl_config.gl_swap_control)
 		{
 			if (r_swapinterval->value == 2 && gl_config.gl_swap_control_tear)
+			{
 				SDL_GL_SetSwapInterval(-1);
+				gl_config.vsync_active = true;
+			}
 			else if (r_swapinterval->value == 1)
+			{
 				SDL_GL_SetSwapInterval(1);
+				gl_config.vsync_active = true;
+			}
 			else
+			{
 				SDL_GL_SetSwapInterval(0);
+				gl_config.vsync_active = false;
+			}
 		}
 		r_swapinterval->modified = false;
 	}
@@ -25588,7 +25597,7 @@ bool NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 
 	net_socket = ip_sockets[sock];
 
-	if (!net_socket)
+	if (net_socket == -1)
 		return false;
 
 	fromlen = sizeof(from);
@@ -25646,17 +25655,11 @@ bool NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_message)
 
 	if (ret == -1)
 	{
-#ifdef _WIN32
-		int err = WSAGetLastError();
+		int err = socketError;
 
-		if (err == WSAEWOULDBLOCK || err == WSAECONNRESET)
+		if (err == EWOULDBLOCK || err == ECONNRESET)
 			return false;
-		if (err == WSAEMSGSIZE)
-#else
-		if (errno == EWOULDBLOCK || errno == ECONNRESET)
-			return false;
-		if (errno == EMSGSIZE)
-#endif
+		if (err == EMSGSIZE)
 		{
 			Com_Printf ("^3Warning:^7 Oversize packet from %s\n", NET_AdrToString(*net_from));
 			return false;
@@ -25695,13 +25698,13 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 	if (to.type == NA_BROADCAST)
 	{
 		net_socket = ip_sockets[sock];
-		if (!net_socket)
+		if (net_socket == -1)
 			return;
 	}
 	else if (to.type == NA_IP)
 	{
 		net_socket = ip_sockets[sock];
-		if (!net_socket)
+		if (net_socket == -1)
 			return;
 	}
 	else
@@ -25770,25 +25773,15 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 
 	if (ret == -1)
 	{
-#ifdef _WIN32
-		int err = WSAGetLastError();
+		int err = socketError;
 
 		// wouldblock is silent
-		if (err == WSAEWOULDBLOCK)
+		if (err == EWOULDBLOCK)
 			return;
 
 		// some PPP links dont allow broadcasts
-		if ((err == WSAEADDRNOTAVAIL || err == WSAEHOSTUNREACH || err == WSAENETUNREACH) && ((to.type == NA_BROADCAST)))
+		if ((err == EADDRNOTAVAIL || err == EHOSTUNREACH || err == ENETUNREACH) && ((to.type == NA_BROADCAST)))
 			return;
-#else
-		// wouldblock is silent
-		if (errno == EWOULDBLOCK)
-			return;
-
-		// some PPP links dont allow broadcasts
-		if ((errno == EADDRNOTAVAIL || errno == EHOSTUNREACH || errno == ENETUNREACH) && ((to.type == NA_BROADCAST)))
-			return;
-#endif
 
 		if (dedicated->value)	// let dedicated servers continue after errors
 		{
@@ -25796,11 +25789,7 @@ void NET_SendPacket (netsrc_t sock, int length, void *data, netadr_t to)
 		}
 		else
 		{
-#ifdef _WIN32
-			if (err == WSAEADDRNOTAVAIL)
-#else
-			if (errno == EADDRNOTAVAIL)
-#endif
+			if (err == EADDRNOTAVAIL)
 			{
 				Com_DPrintf ("NET_SendPacket Warning: %s : %s\n", NET_ErrorString(), NET_AdrToString (to));
 			}
@@ -30655,8 +30644,105 @@ void NET_Init ()
 }
 
 
+/*
+====================
+NET_OpenIP
+====================
+*/
+void NET_OpenIP ()
+{
+	cvar_t	*ip;
+	int		port;
+	int		dedicated;
+
+	ip = Cvar_Get ("ip", "localhost", CVAR_NOSET);
+
+	dedicated = Cvar_VariableValue ("dedicated");
+
+	if (ip_sockets[NS_SERVER] == -1)
+	{
+		port = Cvar_Get("ip_hostport", "0", CVAR_NOSET)->value;
+		if (!port)
+		{
+			port = Cvar_Get("hostport", "0", CVAR_NOSET)->value;
+			if (!port)
+			{
+				if(net_compatibility->value)
+					port = Cvar_Get("port", va("%i", OLD_PORT_SERVER), CVAR_NOSET)->value;
+				else
+					port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_NOSET)->value;
+			}
+		}
+		ip_sockets[NS_SERVER] = NET_IPSocket (ip->string, port);
+		if (ip_sockets[NS_SERVER] == -1 && dedicated)
+			Com_Error (ERR_FATAL, "Couldn't allocate dedicated server IP port");
+	}
+
+
+	// dedicated servers don't need client ports
+	if (dedicated)
+		return;
+
+	if (ip_sockets[NS_CLIENT] == -1)
+	{
+		port = Cvar_Get("ip_clientport", "0", CVAR_NOSET)->value;
+		if (!port)
+		{
+			if(net_compatibility->value)
+				port = Cvar_Get("clientport", va("%i", OLD_PORT_CLIENT), CVAR_NOSET)->value;
+			else
+				port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_NOSET)->value;
+
+			if (!port)
+				port = PORT_ANY;
+		}
+		ip_sockets[NS_CLIENT] = NET_IPSocket (ip->string, port);
+		if (ip_sockets[NS_CLIENT] == -1)
+			ip_sockets[NS_CLIENT] = NET_IPSocket (ip->string, PORT_ANY);
+	}
+}
+
+
+/*
+====================
+NET_Config
+
+A single player game will only use the loopback code
+====================
+*/
+void	NET_Config (bool multiplayer)
+{
+	int		i;
+	static	bool	old_config;
+
+	if (old_config == multiplayer)
+		return;
+
+	old_config = multiplayer;
+
+	if (!multiplayer)
+	{	// shut down any existing sockets
+		for (i=0 ; i<2 ; i++)
+		{
+			if (ip_sockets[i] >= 0)
+			{
+				close (ip_sockets[i]);
+				ip_sockets[i] = -1;
+			}
+		}
+	}
+	else
+	{	// open sockets
+		if (!noudp->value)
+			NET_OpenIP ();
+	}
+}
+
+
 void NET_Shutdown ()
 {
+	// close sockets
+	NET_Config (false);
 #ifdef _WIN32
 	WSACleanup ();
 #endif
@@ -31224,38 +31310,30 @@ int NET_IPSocket (char *net_interface, int port)
 	struct sockaddr_in	address;
 	unsigned long		_true = 1;
 	int					i = 1;
-#ifdef _WIN32
 	int					err;
-#endif
 
 	if ((newsocket = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 	{
-#ifdef _WIN32
-		err = WSAGetLastError();
-		if (err != WSAEAFNOSUPPORT)
-#else
-		if (errno != EAFNOSUPPORT)
-#endif
+		err = socketError;
+		if (err != EAFNOSUPPORT)
 			Com_DPrintf ("WARNING: UDP_OpenSocket: socket: %s\n", NET_ErrorString());
-		return 0;
+		return -1;
 	}
 
 	// make it non-blocking
-#ifdef _WIN32
-	if (ioctlsocket (newsocket, FIONBIO, &_true) == -1)
-#else
 	if (ioctl (newsocket, FIONBIO, &_true) == -1)
-#endif
 	{
 		Com_DPrintf ("WARNING: UDP_OpenSocket: ioctl FIONBIO: %s\n", NET_ErrorString());
-		return 0;
+		close (newsocket);
+		return -1;
 	}
 
 	// make it broadcast capable
 	if (setsockopt(newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&i, sizeof(i)) == -1)
 	{
 		Com_DPrintf ("WARNING: UDP_OpenSocket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString());
-		return 0;
+		close (newsocket);
+		return -1;
 	}
 
 	if (!net_interface || !net_interface[0] || !stricmp(net_interface, "localhost"))
@@ -31273,114 +31351,11 @@ int NET_IPSocket (char *net_interface, int port)
 	if( bind (newsocket, (struct sockaddr *)&address, sizeof(address)) == -1)
 	{
 		Com_DPrintf ("WARNING: UDP_OpenSocket: bind: %s\n", NET_ErrorString());
-#ifdef _WIN32
-		closesocket (newsocket);
-#else
 		close (newsocket);
-#endif
-		return 0;
+		return -1;
 	}
 
 	return newsocket;
-}
-
-
-/*
-====================
-NET_OpenIP
-====================
-*/
-void NET_OpenIP ()
-{
-	cvar_t	*ip;
-	int		port;
-	int		dedicated;
-
-	ip = Cvar_Get ("ip", "localhost", CVAR_NOSET);
-
-	dedicated = Cvar_VariableValue ("dedicated");
-
-	if (!ip_sockets[NS_SERVER])
-	{
-		port = Cvar_Get("ip_hostport", "0", CVAR_NOSET)->value;
-		if (!port)
-		{
-			port = Cvar_Get("hostport", "0", CVAR_NOSET)->value;
-			if (!port)
-			{
-				if(net_compatibility->value)
-					port = Cvar_Get("port", va("%i", OLD_PORT_SERVER), CVAR_NOSET)->value;
-				else
-					port = Cvar_Get("port", va("%i", PORT_SERVER), CVAR_NOSET)->value;
-			}
-		}
-		ip_sockets[NS_SERVER] = NET_IPSocket (ip->string, port);
-		if (!ip_sockets[NS_SERVER] && dedicated)
-			Com_Error (ERR_FATAL, "Couldn't allocate dedicated server IP port");
-	}
-
-
-	// dedicated servers don't need client ports
-	if (dedicated)
-		return;
-
-	if (!ip_sockets[NS_CLIENT])
-	{
-		port = Cvar_Get("ip_clientport", "0", CVAR_NOSET)->value;
-		if (!port)
-		{
-			if(net_compatibility->value)
-				port = Cvar_Get("clientport", va("%i", OLD_PORT_CLIENT), CVAR_NOSET)->value;
-			else
-				port = Cvar_Get("clientport", va("%i", PORT_CLIENT), CVAR_NOSET)->value;
-
-			if (!port)
-				port = PORT_ANY;
-		}
-		ip_sockets[NS_CLIENT] = NET_IPSocket (ip->string, port);
-		if (!ip_sockets[NS_CLIENT])
-			ip_sockets[NS_CLIENT] = NET_IPSocket (ip->string, PORT_ANY);
-	}
-}
-
-
-/*
-====================
-NET_Config
-
-A single player game will only use the loopback code
-====================
-*/
-void	NET_Config (bool multiplayer)
-{
-	int		i;
-	static	bool	old_config;
-
-	if (old_config == multiplayer)
-		return;
-
-	old_config = multiplayer;
-
-	if (!multiplayer)
-	{	// shut down any existing sockets
-		for (i=0 ; i<2 ; i++)
-		{
-			if (ip_sockets[i])
-			{
-#ifdef _WIN32
-				closesocket (ip_sockets[i]);
-#else
-				close (ip_sockets[i]);
-#endif
-				ip_sockets[i] = 0;
-			}
-		}
-	}
-	else
-	{	// open sockets
-		if (! noudp->value)
-			NET_OpenIP ();
-	}
 }
 
 
@@ -89624,18 +89599,17 @@ void NET_Sleep(int msec)
 {
     struct timeval timeout;
 	fd_set	fdset;
-	extern cvar_t *dedicated;
-	int i;
+	int i = -1;
 
 	if (!dedicated || !dedicated->value)
 		return; // we're not a server, just run full speed
 
 	FD_ZERO(&fdset);
-	i = 0;
-	if (ip_sockets[NS_SERVER]) {
+	if (ip_sockets[NS_SERVER] >= 0) {
 		FD_SET(ip_sockets[NS_SERVER], &fdset); // network socket
 		i = ip_sockets[NS_SERVER];
 	}
+
 	timeout.tv_sec = msec/1000;
 	timeout.tv_usec = (msec%1000)*1000;
 	select(i+1, &fdset, NULL, NULL, &timeout);
@@ -93902,6 +93876,13 @@ Send Key_Event calls
 */
 void Sys_SendKeyEvents ()
 {
+	SDL_Event ev;
+
+	while (SDL_PollEvent (&ev))
+	{
+		SDL_EventProc (&ev);
+	}
+
 	// grab frame time
 	sys_frame_time = SDL_GetTicks();	// FIXME: should this be at start?
 }
@@ -96468,16 +96449,34 @@ void CL_Frame (int msec)
 		if (cls.state == ca_connected && extratime < 100)
 			return;			// don't flood packets out while connecting
 		float	maxfps;
+		int		refresh, ms = 0;
+		if (gl_config.vsync_active)
+		{
+			SDL_DisplayMode mode;
+
+			if (!SDL_GetWindowDisplayMode(hWnd, &mode))
+				refresh = mode.refresh_rate;
+			else
+				refresh = 60;
+		}
 		if (cls.state == ca_active && !cl_paused->value && !m_menudepth && ActiveApp)
 			maxfps = cl_maxfps->value;
 		else
 			maxfps = con_maxfps->value;
-		if (maxfps < 5) maxfps = 5;				// защита от нулевого значения, иначе зависание!
-		int ms = 1000/maxfps - extratime;
+		if (maxfps > 0)
+		{
+			// 10 is reasonable limit
+			if (maxfps < 10) maxfps = 10;
+			ms = 1000/maxfps - extratime;
+		}
+		else if (gl_config.vsync_active)
+		{
+			ms = 1000/(refresh) - extratime;
+		}
 		if (ms>0)
 		{
 			if (cl_sleep->value)	// снижение загруженности CPU
-				SDL_Delay((Uint32)cl_sleep->value);
+				SDL_Delay((Uint32)ms);
 			return;			// framerate is too high
 		}
 	}
@@ -96552,7 +96551,6 @@ void CL_Frame (int msec)
 
 int main(int argc, char *argv[])
 {
-    SDL_Event	ev;
 	int			time, oldtime;
 
 	BuildSqrtTable();				// Ставим в самом начале, т.к. может понадобиться fastsqrt...
@@ -96572,22 +96570,19 @@ int main(int argc, char *argv[])
 	/* main window message loop */
 	while (1)
 	{
-		// if at a full screen console, don't update unless needed
-		if (Minimized || (dedicated && dedicated->value) )
-		{
-			SDL_Delay (1);
-		}
-
-		while (SDL_PollEvent (&ev))
-		{
-			SDL_EventProc (&ev);
-		}
-
-		do
+		// DarkOne's CPU usage fix
+		while (1)
 		{
 			sys_time = Sys_Milliseconds ();
 			time = sys_time - oldtime;
-		} while (time < 1);
+			if (time > 0) break;
+#ifdef _WIN32
+			Sleep (0); // may also use Sleep(1); to free more CPU, but it can lower your fps
+#else
+			// POSIX equivalent of WIN32 Sleep(0)
+			sched_yield ();
+#endif
+		}
 
 		Common_Frame (time);
 

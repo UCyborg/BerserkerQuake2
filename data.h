@@ -1008,7 +1008,7 @@ image_t	*draw_default;
 image_t	*draw_mapshot = NULL;
 char	saved_shot_dir[16];			// NULL, 'quick', 'save*'
 
-int			ip_sockets[2];
+int			ip_sockets[2] = { -1, -1 };
 
 centity_t	cl_entities[MAX_EDICTS];
 
