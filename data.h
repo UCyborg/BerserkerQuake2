@@ -429,6 +429,9 @@ cvar_t	*cl_noskins;
 cvar_t	*cl_predict;
 cvar_t	*cl_maxfps;
 cvar_t	*con_maxfps;
+cvar_t	*cl_async;
+cvar_t	*net_maxfps;
+cvar_t	*r_maxfps;
 cvar_t	*cl_sleep;
 
 cvar_t	*cl_forcemymodel;
@@ -715,8 +718,6 @@ int		mouse_x;
 int		mouse_y;
 #endif
 
-
-int		gamma_initialized_;
 
 bool	reflib_active = false;
 

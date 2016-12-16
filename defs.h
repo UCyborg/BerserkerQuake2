@@ -413,7 +413,8 @@ typedef struct
 
 ///	int			framecount;		// not used?
 	int			realtime;			// always increasing, no clamping, etc
-	float		frametime;			// seconds since last frame
+	float		netFrameTime;		// seconds since last packet frame
+	float		renderFrameTime;	// seconds since last refresh frame
 
 // screen rendering information
 	float		disable_screen;		// showing loading plaque between levels
@@ -431,6 +432,8 @@ typedef struct
 	int			serverProtocol;		// in case we are doing some kind of version hack
 
 	int			challenge;			// from the server to use for connecting
+
+	bool		forcePacket;		// forces a packet to be sent the next frame
 
 	FILE		*download;			// file transfer from server
 	char		downloadtempname[MAX_OSPATH];
@@ -1182,7 +1185,6 @@ typedef struct
 	bool		vp;					// true - vertex programs ENABLED
 	bool		gl_swap_control;
 	bool		gl_swap_control_tear;
-	bool		vsync_active;
 	int			occlusion;
 	bool		arb_multisample;
 	bool		nv_multisample_hint;
@@ -2073,6 +2075,7 @@ typedef struct
 } game_export_t;
 
 #define	FRAMETIME		0.1
+#define FRAMETIME_MAX	0.5
 
 #define	PORT_CLIENT				27971	/// my client port
 #define	PORT_SERVER				27980	/// my server port

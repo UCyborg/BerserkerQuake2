@@ -3242,7 +3242,7 @@ void Init_Palette ()
 //  Contrast   - steepness
 //  Brightness - uniform offset
 //===========================================================================
-void MakeGammaRamp(WORD *ramp, float gamma, float contrast, float bright)
+void MakeGammaRamp(Uint16 *ramp, float gamma, float contrast, float bright)
 {
 #if 1
 	gamma *= 2;
@@ -3259,11 +3259,11 @@ void MakeGammaRamp(WORD *ramp, float gamma, float contrast, float bright)
 			value = 0;
 		if (value > 65535)
 			value = 65535;
-		ramp[i] = ramp[i + 256] = ramp[i + 512] = (WORD)value;
+		ramp[i] = ramp[i + 256] = ramp[i + 512] = (Uint16)value;
 	}
 #else
 	int     i;
-	double  ideal[256];			// After processing clamped to WORD.
+	double  ideal[256];			// After processing clamped to Uint16.
 	double  norm;
 
 	// Init the ramp as a line with the steepness defined by contrast.
@@ -3287,12 +3287,12 @@ void MakeGammaRamp(WORD *ramp, float gamma, float contrast, float bright)
 	// Clamp it and write the ramp table.
 	for(i = 0; i < 256; i++)
 	{
-		ideal[i] *= 0x100;		// Byte => word
+		ideal[i] *= 0x100;		// Byte => Uint16
 		if(ideal[i] < 0)
 			ideal[i] = 0;
 		if(ideal[i] > 0xffff)
 			ideal[i] = 0xffff;
-		ramp[i] = ramp[i + 256] = ramp[i + 512] = (WORD) ideal[i];
+		ramp[i] = ramp[i + 256] = ramp[i + 512] = (Uint16) ideal[i];
 	}
 #endif
 }
@@ -10402,20 +10402,11 @@ void GL_UpdateSwapInterval ()
 		if (gl_config.gl_swap_control)
 		{
 			if (r_swapinterval->value == 2 && gl_config.gl_swap_control_tear)
-			{
 				SDL_GL_SetSwapInterval(-1);
-				gl_config.vsync_active = true;
-			}
 			else if (r_swapinterval->value == 1)
-			{
 				SDL_GL_SetSwapInterval(1);
-				gl_config.vsync_active = true;
-			}
 			else
-			{
 				SDL_GL_SetSwapInterval(0);
-				gl_config.vsync_active = false;
-			}
 		}
 		r_swapinterval->modified = false;
 	}
@@ -18098,7 +18089,7 @@ void CL_AddParticles ()
 			if (trace.fraction > 0 && trace.fraction < 1)
 			{
 				vec3_t	vel;
-				float time = cl.gameTime - (cls.frametime + cls.frametime * trace.fraction) * 1000;
+				float time = cl.gameTime - (cls.renderFrameTime + cls.renderFrameTime * trace.fraction) * 1000;
 				time = (time - p->time) * 0.001;
 
 				VectorSet(vel, p->vel[0], p->vel[1], p->vel[2] + p->accel[2] * time * grav);
@@ -18176,7 +18167,7 @@ void CL_AddClEntities ()
 	// Berserker: smart remover
 	if (cls.state == ca_active && !cl_paused->value && !m_menudepth)
 	{
-		if (cl_maxfps->value >= r_fpsThreshold->value)
+		if ((cl_async->value ? r_maxfps->value : cl_maxfps->value) >= r_fpsThreshold->value)
 		{
 			if (fps_refreshed && r_fpsThreshold->value > 0)
 			{
@@ -18348,7 +18339,7 @@ void CL_AddClEntities ()
 			if (trace.fraction > 0 && trace.fraction < 1)
 			{
 				vec3_t	vel;
-				float time = cl.leveltime - cls.frametime + cls.frametime * trace.fraction - p->time;
+				float time = cl.leveltime - cls.renderFrameTime + cls.renderFrameTime * trace.fraction - p->time;
 
 				VectorSet(vel, p->vel[0], p->vel[1], p->vel[2] + p->accel[2] * time * grav);
 				VectorReflect(vel, trace.plane.normal, p->vel);
@@ -20331,6 +20322,41 @@ void Draw_Fill (int x, int y, int w, int h, byte r, byte g, byte b)
 }
 
 
+/*
+==================
+SCR_RunConsole
+
+Scroll it up or down
+==================
+*/
+void SCR_RunConsole ()
+{
+// decide on the height of the console
+	if (cls.key_dest == key_console)
+		scr_conlines = 0.5;		// half screen
+	else
+		scr_conlines = 0;				// none visible
+
+////	if (cl.attractloop || cin.pic[0])			/// Berserker: во время демо или показа картинки
+////		scr_con_current = scr_conlines = 0;		/// консоль НЕ ВИДНА!!!
+
+	if (scr_conlines < scr_con_current)
+	{
+		scr_con_current -= scr_conspeed->value*cls.renderFrameTime;
+		if (scr_conlines > scr_con_current)
+			scr_con_current = scr_conlines;
+
+	}
+	else if (scr_conlines > scr_con_current)
+	{
+		scr_con_current += scr_conspeed->value*cls.renderFrameTime;
+		if (scr_conlines < scr_con_current)
+			scr_con_current = scr_conlines;
+	}
+
+}
+
+
 void SCR_DrawConsole ()
 {
 	Con_CheckResize ();
@@ -21277,7 +21303,7 @@ void SCR_DrawCenterString ()
 
 void SCR_CheckDrawCenterString ()
 {
-	scr_centertime_off -= cls.frametime;
+	scr_centertime_off -= cls.renderFrameTime;
 
 	if (scr_centertime_off <= 0)
 		return;
@@ -29769,6 +29795,7 @@ void Cmd_ForwardToServer ()
 		SZ_Print (&cls.netchan.message, " ");
 		SZ_Print (&cls.netchan.message, Cmd_Args());
 	}
+	cls.forcePacket = true;
 }
 
 
@@ -40974,7 +41001,7 @@ void CL_RunDLights ()
 			dl->radius = 0;
 			return;
 		}
-///		dl->radius -= cls.frametime*dl->decay;
+///		dl->radius -= cls.renderFrameTime*dl->decay;
 		if (dl->radius < 0)
 			dl->radius = 0;
 	}
@@ -43034,7 +43061,7 @@ void IN_JoyMove (usercmd_t *cmd)
 		speed = 2;
 	else
 		speed = 1;
-	aspeed = speed * cls.frametime;
+	aspeed = speed * cls.netFrameTime;
 
 	// loop through the axes
 	for (i = 0; i < JOY_MAX_AXES; i++)
@@ -44860,7 +44887,7 @@ void Con_Init ()
 // register our commands
 //
 	con_maxfps = Cvar_Get ("con_maxfps", "25", CVAR_ARCHIVE);
-	con_maxfps->help = "maximal rendering rate for actived menu or console.";
+	con_maxfps->help = "maximal rendering rate for active menu or console.";
 	con_notifytime = Cvar_Get ("con_notifytime", "3", 0);
 	con_transparency = Cvar_Get ("con_transparency", "0", CVAR_ARCHIVE);
 	con_transparency->help = "if set, draws the half-transparent console.";
@@ -45653,8 +45680,6 @@ void VID_CheckChanges ()
 	{
 		loading_stage = 0;
 		mapshot[0] = 0;
-
-		gamma_initialized_ = -16;	// Для надежности пофиксим гамму на 16 кадре.
 
 		// Berserker: если в игре, сохраним клиентское состояние, т.к. видео рестарт похерит декали, партикли и модели...
 		if (cls.state == ca_active)
@@ -73252,6 +73277,7 @@ void CL_ForwardToServer_f ()
 	{
 		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
 		SZ_Print (&cls.netchan.message, Cmd_Args());
+		cls.forcePacket = true;
 	}
 }
 
@@ -73430,6 +73456,7 @@ void CL_Reconnect_f ()
 		Com_Printf ("reconnecting...\n");
 		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
 		MSG_WriteString (&cls.netchan.message, "new");
+		cls.forcePacket = true;
 		return;
 	}
 
@@ -80429,11 +80456,18 @@ void CL_InitLocal ()
 	cl_noskins->help = "assign for all players skin 'players/male/grunt'.";
 ///	cl_autoskins = Cvar_Get ("cl_autoskins", "0", 0);
 	cl_predict = Cvar_Get ("cl_predict", "1", 0);
-	cl_sleep = Cvar_Get ("cl_sleep", "0", CVAR_ARCHIVE);
-	cl_sleep->help = "can decrease CPU loading when cl_maxfps limits render speed.";
+	cl_sleep = Cvar_Get ("cl_sleep", "1", CVAR_ARCHIVE);
+	cl_sleep->help = "can decrease CPU load when _maxfps cvars limit render speed.";
 	cl_forcemymodel = Cvar_Get ("cl_forcemymodel", "0", CVAR_ARCHIVE);
 	cl_forcemymodel->help = "assign for all players your skin. 1 - in game, 2 - in demos.";
-	cl_maxfps = Cvar_Get ("cl_maxfps", "60", CVAR_ARCHIVE);
+	cl_maxfps = Cvar_Get ("cl_maxfps", "90", CVAR_ARCHIVE);
+	cl_maxfps->help = "maximum frame-rate when running in old synchronous mode.";
+	cl_async = Cvar_Get ("cl_async", "1", CVAR_ARCHIVE);
+	cl_async->help = "enable asynchronous mode, network frame-rate is independent from render frame-rate.";
+	net_maxfps = Cvar_Get ("net_maxfps", "60", CVAR_ARCHIVE);
+	net_maxfps->help = "maximum network frame-rate when running in asynchronous mode.";
+	r_maxfps = Cvar_Get ("r_maxfps", "125", CVAR_ARCHIVE);
+	r_maxfps->help = "maximum rendering frame-rate when running in asynchronous mode.";
 
 	p_splash =  Cvar_Get ("p_splash", "1", CVAR_ARCHIVE);		p_splash->value = ClampCvar(0, 1, p_splash->value);
 	p_blood =  Cvar_Get ("p_blood", "1", CVAR_ARCHIVE);			p_blood->value = ClampCvar(0, 1, p_blood->value);
@@ -90561,6 +90595,7 @@ void CL_ConnectionlessPacket ()
 #endif
 		MSG_WriteByte (&cls.netchan.message, clc_stringcmd);
 		MSG_WriteString (&cls.netchan.message, "new");
+		cls.forcePacket = true;
 		cls.state = ca_connected;
 		return;
 	}
@@ -93934,9 +93969,9 @@ void CL_AdjustAngles ()
 	float	up, down;
 
 	if (in_speed.state & 1)
-		speed = cls.frametime * cl_anglespeedkey->value;
+		speed = cls.netFrameTime * cl_anglespeedkey->value;
 	else
-		speed = cls.frametime;
+		speed = cls.netFrameTime;
 
 	if (!(in_strafe.state & 1))
 	{
@@ -94110,15 +94145,10 @@ void Mod_CalcSurfColors()
 void CL_FinishMove (usercmd_t *cmd)
 {
 	int		ms;
-	int		i;
 
 //
 // figure button bits
 //
-	if ( in_flashlight.state & 3 )
-		cmd->buttons |= BUTTON_FLASHLIGHT;
-	in_flashlight.state &= ~2;
-
 	if ( in_attack.state & 3 )
 		cmd->buttons |= BUTTON_ATTACK;
 	in_attack.state &= ~2;
@@ -94127,23 +94157,29 @@ void CL_FinishMove (usercmd_t *cmd)
 		cmd->buttons |= BUTTON_USE;
 	in_use.state &= ~2;
 
+	if ( in_flashlight.state & 3 )
+		cmd->buttons |= BUTTON_FLASHLIGHT;
+	in_flashlight.state &= ~2;
+
 	if (anykeydown && cls.key_dest == key_game)
 		cmd->buttons |= BUTTON_ANY;
 
 	// send milliseconds of time to apply the move
-	ms = cls.frametime * 1000;
+	ms = cls.netFrameTime * 1000;
 	if (ms > 250)
 		ms = 100;		// time was unreasonable
 	cmd->msec = ms;
 
 	CL_ClampPitch ();
-	for (i=0 ; i<3 ; i++)
-		cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
+
+	cmd->angles[0] = ANGLE2SHORT(cl.viewangles[0]);
+	cmd->angles[1] = ANGLE2SHORT(cl.viewangles[1]);
+	cmd->angles[2] = ANGLE2SHORT(cl.viewangles[2]);
 
 	cmd->impulse = in_impulse;
 	in_impulse = 0;
 
-// send the ambient light level at the player's current position
+	// send the ambient light level at the player's current position
 	if (cls.state != ca_active)
 		cmd->lightlevel = 0;
 	else
@@ -94152,8 +94188,6 @@ void CL_FinishMove (usercmd_t *cmd)
 		R_LightForPoint(cl.refdef.vieworg, ambi);
 		float max = max(max(ambi[0],ambi[1]),ambi[2]);
 		cmd->lightlevel = (byte)150 * max;
-///		if(cmd->lightlevel>255)		/// is byte
-///			cmd->lightlevel=255;
 	}
 }
 
@@ -94182,6 +94216,214 @@ usercmd_t CL_CreateCmd ()
 }
 
 
+void CL_RefreshCmd ()
+{
+	int			ms;
+	usercmd_t	*cmd = &cl.cmds[ cls.netchan.outgoing_sequence & (CMD_BACKUP-1) ];
+
+	// get delta for this sample.
+	frame_msec = sys_frame_time - old_sys_frame_time;
+
+	// bounds checking
+	if (frame_msec < 1)
+		return;
+	if (frame_msec > 200)
+		frame_msec = 200;
+
+	// Get basic movement from keyboard
+	CL_BaseMove (cmd);
+
+	if (ActiveApp)
+		IN_JoyMove (cmd);
+
+	// Update cmd viewangles for CL_PredictMove
+	CL_ClampPitch ();
+
+	cmd->angles[0] = ANGLE2SHORT(cl.viewangles[0]);
+	cmd->angles[1] = ANGLE2SHORT(cl.viewangles[1]);
+	cmd->angles[2] = ANGLE2SHORT(cl.viewangles[2]);
+
+	// Update cmd->msec for CL_PredictMove
+	ms = (int)(cls.netFrameTime * 1000);
+	if (ms > 250)
+		ms = 100;
+
+	cmd->msec = ms;
+
+	// Update counter
+	old_sys_frame_time = sys_frame_time;
+
+
+	//7 = starting attack 1  2  4
+	//5 = during attack   1     4
+	//4 = idle                  4
+
+	// Send packet immediately on important events
+	if (((in_attack.state & 2) || (in_use.state & 2)))
+		cls.forcePacket = true;
+}
+
+
+void CL_RefreshMove ()
+{
+	usercmd_t *cmd = &cl.cmds[ cls.netchan.outgoing_sequence & (CMD_BACKUP-1) ];
+
+	// get delta for this sample.
+	frame_msec = sys_frame_time - old_sys_frame_time;
+
+	// bounds checking
+	if (frame_msec < 1)
+		return;
+	if (frame_msec > 200)
+		frame_msec = 200;
+
+	// Get basic movement from keyboard
+	CL_BaseMove (cmd);
+
+	if (ActiveApp)
+		IN_JoyMove (cmd);
+
+	// Update counter
+	old_sys_frame_time = sys_frame_time;
+}
+
+
+void CL_FinalizeCmd ()
+{
+	usercmd_t *cmd = &cl.cmds[ cls.netchan.outgoing_sequence & (CMD_BACKUP-1) ];
+
+	// Set any button hits that occured since last frame
+	if (in_attack.state & 3)
+		cmd->buttons |= BUTTON_ATTACK;
+	in_attack.state &= ~2;
+
+	if (in_use.state & 3)
+		cmd->buttons |= BUTTON_USE;
+	in_use.state &= ~2;
+
+	if (in_flashlight.state & 3)
+		cmd->buttons |= BUTTON_FLASHLIGHT;
+	in_flashlight.state &= ~2;
+
+	if (anykeydown && cls.key_dest == key_game)
+		cmd->buttons |= BUTTON_ANY;
+
+	cmd->impulse = in_impulse;
+	in_impulse = 0;
+
+	// send the ambient light level at the player's current position
+	if (cls.state != ca_active)
+		cmd->lightlevel = 0;
+	else
+	{
+		vec3_t	ambi;
+		R_LightForPoint(cl.refdef.vieworg, ambi);
+		float max = max(max(ambi[0],ambi[1]),ambi[2]);
+		cmd->lightlevel = (byte)150 * max;
+	}
+}
+
+
+void CL_SendCmd_Async ()
+{
+	sizebuf_t	buf;
+	byte		data[128];
+	int			i;
+	usercmd_t	*cmd, *oldcmd;
+	usercmd_t	nullcmd;
+	int			checksumIndex;
+
+	// clear buffer
+	memset (&buf, 0, sizeof(buf));
+
+	// build a command even if not connected
+
+	// save this command off for prediction
+	i = cls.netchan.outgoing_sequence & (CMD_BACKUP-1);
+	cmd = &cl.cmds[i];
+	cl.cmd_time[i] = cls.realtime;	// for netgraph ping calculation
+
+	CL_FinalizeCmd ();
+
+	cl.cmd = *cmd;
+
+	if (cls.state == ca_disconnected || cls.state == ca_connecting)
+		return;
+
+	if ( cls.state == ca_connected)
+	{
+		if (cls.netchan.message.cursize	|| curtime - cls.netchan.last_sent > 1000 )
+			Netchan_Transmit (&cls.netchan, 0, buf.data);
+		return;
+	}
+
+	// send a userinfo update if needed
+	if (userinfo_modified)
+	{
+		CL_FixUpGender();
+		userinfo_modified = false;
+		MSG_WriteByte (&cls.netchan.message, clc_userinfo);
+		if(net_compatibility->value)
+			MSG_WriteString (&cls.netchan.message, Cvar_Userinfo(true) );	/// Шлём полную строку для совместимости
+		else
+			MSG_WriteString (&cls.netchan.message, Cvar_Userinfo(false) );	/// или только изменения (Berserker: оптимизация сетевого протокола)
+	}
+
+	SZ_Init (&buf, data, sizeof(data));
+
+	if (cmd->buttons && cl.cinematictime > 0 && !cl.attractloop && cls.realtime - cl.cinematictime > 1000)
+	{	// skip the rest of the cinematic
+		SCR_StopCinematic ();		/// Berserker: НЕ УБИРАТЬ! Иначе будут глюки с cinema!!!
+		SCR_FinishCinematic ();
+	}
+
+	// begin a client move command
+	MSG_WriteByte (&buf, clc_move);
+
+	// save the position for a checksum byte
+	checksumIndex = buf.cursize;
+	MSG_WriteByte (&buf, 0);
+
+	// let the server know what the last frame we
+	// got was, so the next message can be delta compressed
+	if (cl_nodelta->value || !cl.frame.valid || cls.demowaiting)
+		MSG_WriteLong (&buf, -1);	// no compression
+	else
+		MSG_WriteLong (&buf, cl.frame.serverframe);
+
+	// send this and the previous cmds in the message, so
+	// if the last packet was dropped, it can be recovered
+	i = (cls.netchan.outgoing_sequence-2) & (CMD_BACKUP-1);
+	cmd = &cl.cmds[i];
+	memset (&nullcmd, 0, sizeof(nullcmd));
+	MSG_WriteDeltaUsercmd (&buf, &nullcmd, cmd);
+	oldcmd = cmd;
+
+	i = (cls.netchan.outgoing_sequence-1) & (CMD_BACKUP-1);
+	cmd = &cl.cmds[i];
+	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
+	oldcmd = cmd;
+
+	i = (cls.netchan.outgoing_sequence) & (CMD_BACKUP-1);
+	cmd = &cl.cmds[i];
+	MSG_WriteDeltaUsercmd (&buf, oldcmd, cmd);
+
+	// calculate a checksum over the move commands
+	buf.data[checksumIndex] = COM_BlockSequenceCRCByte(
+		buf.data + checksumIndex + 1, buf.cursize - checksumIndex - 1,
+		cls.netchan.outgoing_sequence);
+
+	//
+	// deliver the message
+	//
+	Netchan_Transmit (&cls.netchan, buf.cursize, buf.data);
+
+	// Init the current cmd buffer and clear it
+	cmd = &cl.cmds[ cls.netchan.outgoing_sequence & (CMD_BACKUP-1) ];
+	memset(cmd, 0, sizeof(*cmd));
+}
+
+
 void CL_SendCmd ()
 {
 	sizebuf_t	buf;
@@ -94191,7 +94433,8 @@ void CL_SendCmd ()
 	usercmd_t	nullcmd;
 	int			checksumIndex;
 
-buf.data = NULL;	// quiet compiler warning
+	// clear buffer
+	memset (&buf, 0, sizeof(buf));
 
 	// build a command even if not connected
 
@@ -94220,10 +94463,9 @@ buf.data = NULL;	// quiet compiler warning
 		CL_FixUpGender();
 		userinfo_modified = false;
 		MSG_WriteByte (&cls.netchan.message, clc_userinfo);
-		if(net_compatibility->value)
-			MSG_WriteString (&cls.netchan.message, Cvar_Userinfo(true) );	/// Шлём полную строку для совместимости
-		else
-			MSG_WriteString (&cls.netchan.message, Cvar_Userinfo(false) );	/// или только изменения (Berserker: оптимизация сетевого протокола)
+		/// Шлём полную строку для совместимости
+		MSG_WriteString (&cls.netchan.message, Cvar_Userinfo(net_compatibility->value ? true : false) );
+		/// или только изменения (Berserker: оптимизация сетевого протокола)
 	}
 
 	SZ_Init (&buf, data, sizeof(data));
@@ -94474,53 +94716,6 @@ int		CL_PMpointcontents (vec3_t point)
 }
 
 
-void CL_FixCvarCheats ()
-{
-	int			i;
-	cheatvar_t	*var;
-
-	if ( !strcmp(cl.configstrings[CS_MAXCLIENTS], "1") || !cl.configstrings[CS_MAXCLIENTS][0] )
-		return;		// single player can cheat
-
-	// find all the cvars if we haven't done it yet
-	if (!numcheatvars)
-	{
-		while (cheatvars[numcheatvars].name)
-		{
-			cheatvars[numcheatvars].var = Cvar_Get (cheatvars[numcheatvars].name, cheatvars[numcheatvars].value, 0);
-			numcheatvars++;
-		}
-	}
-
-	// make sure they are all set to the proper values
-	for (i=0, var = cheatvars ; i<numcheatvars ; i++, var++)
-		if ( strcmp (var->var->string, var->value) )
-			Cvar_Set (var->name, var->value);
-}
-
-
-void CL_SendCommand ()
-{
-	// get new key events
-	Sys_SendKeyEvents ();
-
-	// allow mice or other external controllers to add commands
-	IN_Commands ();
-
-	// process console commands
-	Cbuf_Execute ();
-
-	if(!cl.attractloop)			/// Berserker: не отменять читы для дёмок
-		CL_FixCvarCheats ();	// fix any cheating cvars
-
-	// send intentions now
-	CL_SendCmd ();
-
-	// resend a connection request if necessary
-	CL_CheckForResend ();
-}
-
-
 /*
 =================
 CL_PredictMovement
@@ -94538,6 +94733,7 @@ void CL_PredictMovement ()
 	int			i;
 	int			step;
 	int			oldz;
+	static int	last_step_frame = 0;
 
 	if (cls.state != ca_active)
 		return;
@@ -94576,26 +94772,59 @@ void CL_PredictMovement ()
 
 	frame = 0;
 
-	// run frames
-	while (++ack < current)
+	if (cl_async->value)
 	{
-		frame = ack & (CMD_BACKUP-1);
-		cmd = &cl.cmds[frame];
+		// run frames
+		while (++ack <= current) // Changed '<' to '<=' cause current is our pending cmd
+		{
+			frame = ack & (CMD_BACKUP-1);
+			cmd = &cl.cmds[frame];
 
-		pm.cmd = *cmd;
-		Pmove (&pm);
+			if (!cmd->msec) // Ignore 'null' usercmd entries
+				continue;
 
-		// save for debug checking
-		VectorCopy (pm.s.origin, cl.predicted_origins[frame]);
+			pm.cmd = *cmd;
+			Pmove (&pm);
+
+			// save for debug checking
+			VectorCopy (pm.s.origin, cl.predicted_origins[frame]);
+		}
+
+		oldframe = (ack-2) & (CMD_BACKUP-1);
+		oldz = cl.predicted_origins[oldframe][2];
+		step = pm.s.origin[2] - oldz;
+
+		// TODO: Add Paril's step down fix here
+		if (last_step_frame != current && step > 63 && step < 160 && (pm.s.pm_flags & PMF_ON_GROUND) )
+		{
+			cl.predicted_step = step * 0.125;
+			cl.predicted_step_time = cls.realtime - cls.netFrameTime * 500;
+			last_step_frame = current;
+		}
 	}
-
-	oldframe = (ack-2) & (CMD_BACKUP-1);
-	oldz = cl.predicted_origins[oldframe][2];
-	step = pm.s.origin[2] - oldz;
-	if (step > 63 && step < 160 && (pm.s.pm_flags & PMF_ON_GROUND) )
+	else
 	{
-		cl.predicted_step = step * 0.125;
-		cl.predicted_step_time = cls.realtime - cls.frametime * 500;
+		// run frames
+		while (++ack < current)
+		{
+			frame = ack & (CMD_BACKUP-1);
+			cmd = &cl.cmds[frame];
+
+			pm.cmd = *cmd;
+			Pmove (&pm);
+
+			// save for debug checking
+			VectorCopy (pm.s.origin, cl.predicted_origins[frame]);
+		}
+
+		oldframe = (ack-2) & (CMD_BACKUP-1);
+		oldz = cl.predicted_origins[oldframe][2];
+		step = pm.s.origin[2] - oldz;
+		if (step > 63 && step < 160 && (pm.s.pm_flags & PMF_ON_GROUND) )
+		{
+			cl.predicted_step = step * 0.125;
+			cl.predicted_step_time = cls.realtime - cls.netFrameTime * 500;
+		}
 	}
 
 
@@ -94605,6 +94834,90 @@ void CL_PredictMovement ()
 	cl.predicted_origin[2] = pm.s.origin[2]*0.125;
 
 	VectorCopy (pm.viewangles, cl.predicted_angles);
+}
+
+
+void CL_FixCvarCheats ()
+{
+	int			i;
+	cheatvar_t	*var;
+
+	if ( !strcmp(cl.configstrings[CS_MAXCLIENTS], "1") || !cl.configstrings[CS_MAXCLIENTS][0] )
+		return;		// single player can cheat
+
+	// find all the cvars if we haven't done it yet
+	if (!numcheatvars)
+	{
+		while (cheatvars[numcheatvars].name)
+		{
+			cheatvars[numcheatvars].var = Cvar_Get (cheatvars[numcheatvars].name, cheatvars[numcheatvars].value, 0);
+			numcheatvars++;
+		}
+	}
+
+	// make sure they are all set to the proper values
+	for (i=0, var = cheatvars ; i<numcheatvars ; i++, var++)
+		if ( strcmp (var->var->string, var->value) )
+			Cvar_Set (var->name, var->value);
+}
+
+
+void CL_RefreshInputs ()
+{
+	// fetch results from server
+	CL_ReadPackets ();
+
+	// get new key events
+	Sys_SendKeyEvents ();
+
+	// allow mice or other external controllers to add commands
+	IN_Commands ();
+
+	// process console commands
+	Cbuf_Execute ();
+
+	// fix any cheating cvars
+	if (!cl.attractloop)		/// Berserker: не отменять читы для дёмок
+		CL_FixCvarCheats ();
+
+	// Update usercmd state
+	if (cls.state > ca_connecting)
+		CL_RefreshCmd ();
+	else
+		CL_RefreshMove ();
+}
+
+
+void CL_SendCommand_Async ()
+{
+	// send intentions now
+	CL_SendCmd_Async ();
+
+	// resend a connection request if necessary
+	CL_CheckForResend ();
+}
+
+
+void CL_SendCommand ()
+{
+	// get new key events
+	Sys_SendKeyEvents ();
+
+	// allow mice or other external controllers to add commands
+	IN_Commands ();
+
+	// process console commands
+	Cbuf_Execute ();
+
+	// fix any cheating cvars
+	if (!cl.attractloop)		/// Berserker: не отменять читы для дёмок
+		CL_FixCvarCheats ();
+
+	// send intentions now
+	CL_SendCmd ();
+
+	// resend a connection request if necessary
+	CL_CheckForResend ();
 }
 
 
@@ -95725,41 +96038,6 @@ void CL_Clear3DHud()
 
 
 /*
-==================
-SCR_RunConsole
-
-Scroll it up or down
-==================
-*/
-void SCR_RunConsole ()
-{
-// decide on the height of the console
-	if (cls.key_dest == key_console)
-		scr_conlines = 0.5;		// half screen
-	else
-		scr_conlines = 0;				// none visible
-
-////	if (cl.attractloop || cin.pic[0])			/// Berserker: во время демо или показа картинки
-////		scr_con_current = scr_conlines = 0;		/// консоль НЕ ВИДНА!!!
-
-	if (scr_conlines < scr_con_current)
-	{
-		scr_con_current -= scr_conspeed->value*cls.frametime;
-		if (scr_conlines > scr_con_current)
-			scr_con_current = scr_conlines;
-
-	}
-	else if (scr_conlines > scr_con_current)
-	{
-		scr_con_current += scr_conspeed->value*cls.frametime;
-		if (scr_conlines < scr_con_current)
-			scr_con_current = scr_conlines;
-	}
-
-}
-
-
-/*
 =================
 S_SpatializeOrigin
 
@@ -96427,6 +96705,159 @@ void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 }
 
 
+void CL_Frame_Async (int msec)
+{
+	static int	packetDelta = 0;
+	static int	renderDelta = 0;
+	static int	miscDelta = 0;
+	bool		packetFrame = true;
+	bool		renderFrame = true;
+	bool		miscFrame = true;
+
+	// don't allow setting maxfps too low (or game could stop responding)
+	// don't allow too high, either
+	if (net_maxfps->modified)
+	{
+		Cvar_SetValue( "net_maxfps", ClampCvar( 10, 90, net_maxfps->value ));
+		net_maxfps->modified = false;
+	}
+	if (r_maxfps->modified)
+	{
+		Cvar_SetValue( "r_maxfps", ClampCvar( 10, 1000, r_maxfps->value ));
+		r_maxfps->modified = false;
+	}
+	if (con_maxfps->modified)
+	{
+		Cvar_SetValue( "con_maxfps", ClampCvar( 10, 200, con_maxfps->value ));
+		con_maxfps->modified = false;
+	}
+
+	packetDelta += msec;
+	renderDelta += msec;
+	miscDelta += msec;
+
+	// decide the simulation time
+	cls.netFrameTime = packetDelta * 0.001f;
+	cls.renderFrameTime = renderDelta * 0.001f;
+	cl.time += msec;
+	cls.realtime = curtime;
+
+	// Don't extrapolate too far ahead
+	if (cls.netFrameTime > FRAMETIME_MAX)
+		cls.netFrameTime = FRAMETIME_MAX;
+	if (cls.renderFrameTime > FRAMETIME_MAX)
+		cls.renderFrameTime = FRAMETIME_MAX;
+
+	if (!cl_timedemo->value)
+	{
+		float maxfps;
+
+		// Don't flood packets out while connecting
+		if (cls.state == ca_connected && packetDelta < 100)
+			packetFrame = false;
+
+		if (cls.state == ca_active && !cl_paused->value && !m_menudepth && ActiveApp)
+			maxfps = r_maxfps->value;
+		else
+			maxfps = con_maxfps->value;
+
+		if (packetDelta < 1000.0 / net_maxfps->value)
+			packetFrame = false;
+		else if (cls.netFrameTime == cls.renderFrameTime)
+			packetFrame = false;
+
+		if (renderDelta < 1000.0 / maxfps)
+			renderFrame = false;
+
+		// Stuff that only needs to run at 10FPS
+		if (miscDelta < 1000.0 / 10)
+			miscFrame = false;
+
+		if (!packetFrame && !renderFrame && !cls.forcePacket && !userinfo_modified)
+		{	// Pooy's CPU usage fix
+			if (cl_sleep->value || !ActiveApp)
+			{
+				int temptime = min( (1000.0 / net_maxfps->value - packetDelta), (1000.0 / maxfps - renderDelta) );
+				if (temptime > 1)
+					SDL_Delay (1);
+			} // end CPU usage fix
+			return;
+		}
+
+	}
+
+	// Update the inputs (keyboard, mouse, console)
+	if (packetFrame || renderFrame)
+		CL_RefreshInputs ();
+
+	if (cls.forcePacket || userinfo_modified)
+	{
+		packetFrame = true;
+		cls.forcePacket = false;
+	}
+
+	// Send a new command message to the server
+	if (packetFrame)
+	{
+		packetDelta = 0;
+		CL_SendCommand_Async ();
+	}
+
+	if (renderFrame)
+	{
+		renderDelta = 0;
+
+		if (miscFrame)
+		{
+			miscDelta = 0;
+
+			// Berserker: обновим клиентинфо всех клиентов при изменении цвара
+			if (cl_forcemymodel_modified)
+			{
+				int	cs_playerskins;
+				if (net_compatibility->value)
+					cs_playerskins = CS_PLAYERSKINS_Q2;
+				else
+					cs_playerskins = CS_PLAYERSKINS_BERS;
+				cl_forcemymodel_modified = false;
+				for (int i=0 ; i<MAX_CLIENTS ; i++)
+					if (cl.configstrings[cs_playerskins+i][0])
+						CL_ParseClientinfo (i);
+			}
+
+			// Allow rendering DLL change
+			VID_CheckChanges ();
+
+			// Let the mouse activate or deactivate
+			IN_Frame ();
+		}
+		// Predict all unacknowledged movements
+		CL_PredictMovement ();
+
+		if (!cl.refresh_prepped && cls.state == ca_active)
+			CL_PrepRefresh ();
+
+		// update the screen
+		if (host_speeds->value)
+			time_before_ref = Sys_Milliseconds ();
+		SCR_UpdateScreen ();
+		if (host_speeds->value)
+			time_after_ref = Sys_Milliseconds ();
+
+		// Update audio
+		S_Update (cl.refdef.vieworg, cl.v_forward, cl.v_right, cl.v_up);
+
+		// Advance local effects for next frame
+		CL_RunDLights ();
+		CL_RunLightStyles ();
+		SCR_RunCinematic ();
+		SCR_RunConsole ();
+
+///		cls.framecount++;	// not used?
+	}
+}
+
+
 void CL_Frame (int msec)
 {
 	static int	extratime;
@@ -96442,53 +96873,63 @@ void CL_Frame (int msec)
 	else
 		draw_emits = false;
 
+	if (cl_async->value && !cl_timedemo->value)
+	{
+		CL_Frame_Async (msec);
+		return;
+	}
+
 	extratime += msec;
+
+	// don't allow setting maxfps too low (or game could stop responding)
+	// don't allow too high, either
+	if (cl_maxfps->modified)
+	{
+		Cvar_SetValue( "cl_maxfps", ClampCvar( 10, 500, cl_maxfps->value ));
+		cl_maxfps->modified = false;
+	}
+	if (con_maxfps->modified)
+	{
+		Cvar_SetValue( "con_maxfps", ClampCvar( 10, 200, con_maxfps->value ));
+		con_maxfps->modified = false;
+	}
 
 	if (!cl_timedemo->value)
 	{
+		float maxfps;
+
 		if (cls.state == ca_connected && extratime < 100)
 			return;			// don't flood packets out while connecting
-		float	maxfps;
-		int		refresh, ms = 0;
-		if (gl_config.vsync_active)
-		{
-			SDL_DisplayMode mode;
 
-			if (!SDL_GetWindowDisplayMode(hWnd, &mode))
-				refresh = mode.refresh_rate;
-			else
-				refresh = 60;
-		}
 		if (cls.state == ca_active && !cl_paused->value && !m_menudepth && ActiveApp)
 			maxfps = cl_maxfps->value;
 		else
 			maxfps = con_maxfps->value;
-		if (maxfps > 0)
+
+		if (extratime < 1000.0 / maxfps)
 		{
-			// 10 is reasonable limit
-			if (maxfps < 10) maxfps = 10;
-			ms = 1000/maxfps - extratime;
-		}
-		else if (gl_config.vsync_active)
-		{
-			ms = 1000/(refresh) - extratime;
-		}
-		if (ms>0)
-		{
-			if (cl_sleep->value)	// снижение загруженности CPU
-				SDL_Delay((Uint32)ms);
+			// Pooy's CPU usage fix
+			if (cl_sleep->value || !ActiveApp)
+			{
+				int temptime = 1000 / maxfps - extratime;
+				if (temptime > 1)
+					SDL_Delay (1);
+			} // end CPU usage fix
 			return;			// framerate is too high
 		}
 	}
 
 	// decide the simulation time
-	cls.frametime = extratime/1000.0;
+	cls.netFrameTime = extratime/1000.0;
 	cl.time += extratime;
 	cls.realtime = curtime;
 
 	extratime = 0;
-	if (cls.frametime > (1.0 / 5))
-		cls.frametime = (1.0 / 5);
+
+	if (cls.netFrameTime > (1.0 / 5))
+		cls.netFrameTime = (1.0 / 5);
+
+	cls.renderFrameTime = cls.netFrameTime;
 
 	// fetch results from server
 	CL_ReadPackets ();
@@ -96499,14 +96940,14 @@ void CL_Frame (int msec)
 	// predict all unacknowledged movements
 	CL_PredictMovement ();
 
-	int	cs_playerskins;
-	if (net_compatibility->value)
-		cs_playerskins = CS_PLAYERSKINS_Q2;
-	else
-		cs_playerskins = CS_PLAYERSKINS_BERS;
 	// Berserker: обновим клиентинфо всех клиентов при изменении цвара
 	if (cl_forcemymodel_modified)
 	{
+		int	cs_playerskins;
+		if (net_compatibility->value)
+			cs_playerskins = CS_PLAYERSKINS_Q2;
+		else
+			cs_playerskins = CS_PLAYERSKINS_BERS;
 		cl_forcemymodel_modified = false;
 		for (int i=0 ; i<MAX_CLIENTS ; i++)
 			if (cl.configstrings[cs_playerskins+i][0])
@@ -96526,15 +96967,6 @@ void CL_Frame (int msec)
 	SCR_UpdateScreen ();
 	if (host_speeds->value)
 		time_after_ref = Sys_Milliseconds ();
-
-	// Berserker: если системная гамма изменена при запуске игры
-	// то установки своей гаммы до некоторого времени не работают. Пофиксим. Почему так, хз, особо не разбирался...
-	if(!cls.disable_screen)
-	{
-		gamma_initialized_++;
-		if(gamma_initialized_ == 0)
-			SetGamma(vid_gamma->value, vid_bright->value, vid_contrast->value);
-	}
 
 	// update audio
 	S_Update (cl.refdef.vieworg, cl.v_forward, cl.v_right, cl.v_up);
