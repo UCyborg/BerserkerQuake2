@@ -45001,7 +45001,8 @@ void ControlsSetMenuItemValues()
 	s_options_cdvolume_slider.curvalue		= Cvar_VariableValue( "s_musicVolume" ) * 10;
 	s_options_cdvolume_box.curvalue 		= SetMusicValue();
 	s_options_quality_list.curvalue			= QualFromKHZ(Cvar_VariableValue( "s_khz" ));
-	s_options_sensitivity_slider.curvalue	= ( sensitivity->value ) * 5/*2*/;
+	s_options_sensitivity_slider.curvalue	= sensitivity->value * 10/*2*/;
+	s_options_zoomspeed_slider.curvalue		= zoomspeed->value * 10;
 
 	Cvar_SetValue( "cl_run", ClampCvar( 0, 1, cl_run->value ) );
 	s_options_alwaysrun_box.curvalue		= cl_run->value;
@@ -45184,7 +45185,7 @@ void Options_MenuInit()
 	s_options_mutefocus_list.generic.y = 40;
 	s_options_mutefocus_list.generic.name = "mute when inactive";
 	s_options_mutefocus_list.generic.callback = ToggleMuteFocusFunc;
-	s_options_mutefocus_list.itemnames = onoff_names;
+	s_options_mutefocus_list.itemnames = yesno_names;
 	s_options_mutefocus_list.curvalue = Cvar_VariableValue("s_mute_losefocus");
 
 	s_options_sensitivity_slider.generic.type	= MTYPE_SLIDER;
@@ -45192,47 +45193,55 @@ void Options_MenuInit()
 	s_options_sensitivity_slider.generic.y		= 50;
 	s_options_sensitivity_slider.generic.name	= "mouse speed";
 	s_options_sensitivity_slider.generic.callback = MouseSpeedFunc;
-	s_options_sensitivity_slider.minvalue		= 0.5f;
-	s_options_sensitivity_slider.maxvalue		= 50/*22*/;
+	s_options_sensitivity_slider.minvalue		= 1;
+	s_options_sensitivity_slider.maxvalue		= 100/*22*/;
+
+	s_options_zoomspeed_slider.generic.type		= MTYPE_SLIDER;
+	s_options_zoomspeed_slider.generic.x		= 0;
+	s_options_zoomspeed_slider.generic.y		= 60;
+	s_options_zoomspeed_slider.generic.name		= "zoom speed";
+	s_options_zoomspeed_slider.generic.callback	= ZoomSpeedFunc;
+	s_options_zoomspeed_slider.minvalue			= 1;
+	s_options_zoomspeed_slider.maxvalue			= 50;
 
 	s_options_alwaysrun_box.generic.type = MTYPE_SPINCONTROL;
 	s_options_alwaysrun_box.generic.x	= 0;
-	s_options_alwaysrun_box.generic.y	= 60;
+	s_options_alwaysrun_box.generic.y	= 70;
 	s_options_alwaysrun_box.generic.name	= "always run";
 	s_options_alwaysrun_box.generic.callback = AlwaysRunFunc;
 	s_options_alwaysrun_box.itemnames = yesno_names;
 
 	s_options_invertmouse_box.generic.type = MTYPE_SPINCONTROL;
 	s_options_invertmouse_box.generic.x	= 0;
-	s_options_invertmouse_box.generic.y	= 70;
+	s_options_invertmouse_box.generic.y	= 80;
 	s_options_invertmouse_box.generic.name	= "invert mouse";
 	s_options_invertmouse_box.generic.callback = InvertMouseFunc;
 	s_options_invertmouse_box.itemnames = yesno_names;
 
 	s_options_lookspring_box.generic.type = MTYPE_SPINCONTROL;
 	s_options_lookspring_box.generic.x	= 0;
-	s_options_lookspring_box.generic.y	= 80;
+	s_options_lookspring_box.generic.y	= 90;
 	s_options_lookspring_box.generic.name	= "lookspring";
 	s_options_lookspring_box.generic.callback = LookspringFunc;
 	s_options_lookspring_box.itemnames = yesno_names;
 
 	s_options_lookstrafe_box.generic.type = MTYPE_SPINCONTROL;
 	s_options_lookstrafe_box.generic.x	= 0;
-	s_options_lookstrafe_box.generic.y	= 90;
+	s_options_lookstrafe_box.generic.y	= 100;
 	s_options_lookstrafe_box.generic.name	= "lookstrafe";
 	s_options_lookstrafe_box.generic.callback = LookstrafeFunc;
 	s_options_lookstrafe_box.itemnames = yesno_names;
 
 	s_options_freelook_box.generic.type = MTYPE_SPINCONTROL;
 	s_options_freelook_box.generic.x	= 0;
-	s_options_freelook_box.generic.y	= 100;
+	s_options_freelook_box.generic.y	= 110;
 	s_options_freelook_box.generic.name	= "free look";
 	s_options_freelook_box.generic.callback = FreeLookFunc;
 	s_options_freelook_box.itemnames = yesno_names;
 
 	s_options_crosshair_box.generic.type = MTYPE_SPINCONTROL;
 	s_options_crosshair_box.generic.x	= 0;
-	s_options_crosshair_box.generic.y	= 110;
+	s_options_crosshair_box.generic.y	= 120;
 	s_options_crosshair_box.generic.name	= "crosshair";
 	s_options_crosshair_box.generic.callback = CrosshairFunc;
 	s_options_crosshair_box.itemnames = crosshair_names;
@@ -45272,6 +45281,7 @@ void Options_MenuInit()
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_quality_list );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_mutefocus_list );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_sensitivity_slider );
+	Menu_AddItem( &s_options_menu, ( void * ) &s_options_zoomspeed_slider );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_alwaysrun_box );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_invertmouse_box );
 	Menu_AddItem( &s_options_menu, ( void * ) &s_options_lookspring_box );
@@ -86391,7 +86401,13 @@ void UpdateSoundQualityFunc( void *unused )
 
 void MouseSpeedFunc( void *unused )
 {
-	Cvar_SetValue( "sensitivity", s_options_sensitivity_slider.curvalue / 5.0F/*2.0F*/ );
+	Cvar_SetValue( "sensitivity", s_options_sensitivity_slider.curvalue / 10.0F/*2.0F*/ );
+}
+
+
+void ZoomSpeedFunc( void *unused )
+{
+	Cvar_SetValue( "zoomspeed", s_options_zoomspeed_slider.curvalue / 10.0F );
 }
 
 
