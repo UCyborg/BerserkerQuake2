@@ -43780,6 +43780,8 @@ void SV_GameMap_f ()
 	map = Cmd_Argv(1);
 	if (map[0] == '*')
 	{
+		// other code doesn't handle the asterisk, so don't pass it further
+		map++;
 		// wipe all the *.sav files
 		SV_WipeSavegame ("current");
 	}
@@ -43812,7 +43814,7 @@ void SV_GameMap_f ()
 	saved_shot_dir[0] = 0;
 
 	// start up the next map
-	SV_Map (false, Cmd_Argv(1), false );
+	SV_Map (false, map/*Cmd_Argv(1)*/, false );
 
 	// archive server state
 	strncpy (svs.mapcmd, Cmd_Argv(1), sizeof(svs.mapcmd)-1);
