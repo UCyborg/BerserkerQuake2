@@ -1,7 +1,7 @@
 CC=gcc
 WINDRES=windres
 ifndef OS
-OS := $(shell uname)
+OS=$(shell uname)
 endif
 
 CFLAGS=-w -O3 -fno-strict-aliasing -DNDEBUG
@@ -18,7 +18,7 @@ LDFLAGS_ENGINE:=-lm $(GL_LIB) -lvorbis -lvorbisfile -lz -lminizip $(SDL2_LIBS) -
 LDFLAGS_GAME=-shared -fPIC -lm
 
 ifeq ($(OS), Windows_NT)
-LDFLAGS_ENGINE:=$(LDFLAGS_ENGINE) -lws2_32
+LDFLAGS_ENGINE+=-lws2_32
 endif
 
 ENGINE_SOURCES=main.c unpak.c
