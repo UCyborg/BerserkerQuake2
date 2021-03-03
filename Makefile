@@ -29,11 +29,10 @@ GAME_OBJECTS=$(GAME_SOURCES:.c=.o)
 
 ENGINE_EXE=berserkerq2
 GAME_LIB=game.so
-RES=
 ifeq ($(OS), Windows_NT)
 GAME_LIB=game.dll
 RES=Berserker/Berserker.res
-ICON=Berserker/Berserker.rc
+RC=Berserker/Berserker.rc
 endif
 
 all: $(ENGINE_EXE) $(GAME_LIB)
@@ -48,10 +47,10 @@ $(ENGINE_EXE): $(ENGINE_OBJECTS) $(RES)
 	$(CC) -o $@ $^ $(LDFLAGS_ENGINE)
 
 $(GAME_LIB): $(GAME_OBJECTS)
-	$(CC) -o $@ $^ $(LDFLAGS_GAME)
+	$(CC) -o $@ $< $(LDFLAGS_GAME)
 
-$(RES): $(ICON)
-	$(WINDRES) $^ -O coff -o $@
+$(RES): $(RC)
+	$(WINDRES) $< -O coff -o $@
 
 clean:
-	rm -f $(ENGINE_EXE) $(GAME_LIB) $(ENGINE_OBJECTS) $(GAME_OBJECTS) $(RES)
+	@rm -f $(ENGINE_EXE) $(GAME_LIB) $(ENGINE_OBJECTS) $(GAME_OBJECTS) $(RES)
